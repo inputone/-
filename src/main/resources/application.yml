@@ -1,0 +1,42 @@
+# 应用名称
+spring:
+  application:
+    name: treehole
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/treehole?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 连接池配置
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+  # Thymeleaf配置
+  thymeleaf:
+    cache: false
+  # MyBatis配置（如果用MyBatis-Plus，这里要调整，你用的原生MyBatis）
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.huanghaha.treehole.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    call-setters-on-nulls: true
+
+# 服务器配置
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 30m
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.huanghaha.treehole.mapper: DEBUG
+    org.springframework.boot.autoconfigure: INFO
+
+# 自定义敏感词配置（UTF-8 编码，无字符集问题）
+treehole:
+  forbid-words: fuck,shit,ass,bitch,root,admin,管理员,封禁

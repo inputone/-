@@ -3,12 +3,11 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-
 <mapper namespace="com.huanghaha.treehole.mapper.CommentMapper">
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO comment (content, user_id, post_id)
-        VALUES (#{content}, #{userId}, #{postId})
+        INSERT INTO comment (content, user_id, post_id, create_time)
+        VALUES (#{content}, #{userId}, #{postId}, #{createTime})
     </insert>
 
     <select id="findByPostId" resultType="com.huanghaha.treehole.entity.Comment">
