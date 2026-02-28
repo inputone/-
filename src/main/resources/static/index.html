@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌲 树洞 </title>
+
+    <!-- 第三方库 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <h1>🌲 树洞 · 轻声诉说</h1>
+
+    <!-- 登录区域 -->
+    <div id="authBox" class="auth-box">
+        <h3>登录 / 注册</h3>
+        <input type="text" id="username" placeholder="用户名">
+        <input type="password" id="password" placeholder="密码">
+        <div class="btn-group">
+            <button onclick="auth.login()">登录</button>
+            <button onclick="auth.register()">注册</button>
+        </div>
+    </div>
+
+    <!-- 主应用区域 (登录后显示) -->
+    <div id="mainBox" class="main-box hidden">
+        <!-- 用户信息栏 -->
+        <div class="user-bar">
+            <span>当前用户：<span id="currentUser"></span></span>
+            <button onclick="auth.logout()">退出登录</button>
+        </div>
+
+        <!-- 独立发帖区域 -->
+        <div class="post-card publish-card">
+            <h3>📝 写点什么呢？</h3>
+            <textarea id="postContent" rows="3" placeholder="分享你的心情或秘密..."></textarea>
+            <button onclick="post.publish()">发布帖子</button>
+        </div>
+
+        <!-- 帖子列表区域 -->
+        <div class="posts-section">
+            <h3>📋 所有树洞</h3>
+            <div id="postList"></div>
+
+            <!-- 分页控件 -->
+            <div id="paginationControls" class="pagination-bar">
+                <button id="prevPageBtn" onclick="pagination.changePage(pagination.currentPage - 1)">◀ 上一页</button>
+                <span class="page-indicator" id="pageIndicator">第 1 / 1 页</span>
+                <button id="nextPageBtn" onclick="pagination.changePage(pagination.currentPage + 1)">下一页 ▶</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 引入 JavaScript 模块 -->
+<script src="api.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

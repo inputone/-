@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.huanghaha.treehole.mapper.UserMapper">
+
+    <select id="findByUsername" resultType="com.huanghaha.treehole.entity.User">
+        SELECT *
+        FROM user
+        WHERE username = #{username}
+          AND is_deleted = 0
+    </select>
+
+    <insert id="insert" parameterType="com.huanghaha.treehole.entity.User">
+        INSERT INTO user (username, password, status, is_deleted)
+        VALUES (#{username}, #{password}, #{status}, 0)
+    </insert>
+
+    <update id="update" parameterType="com.huanghaha.treehole.entity.User">
+        UPDATE user
+        SET status = #{status}
+        WHERE id =#{id}
+    </update>
+
+</mapper>
+
