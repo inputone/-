@@ -23,4 +23,12 @@
         WHERE id = #{id}
     </update>
 
+    <select id="findByStatus" resultType="com.huanghaha.treehole.entity.User">
+        SELECT *
+        FROM user
+        WHERE status = #{status}
+        AND is_deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
 </mapper>

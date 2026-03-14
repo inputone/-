@@ -19,7 +19,14 @@ public class WebConfig implements WebMvcConfigurer {
                         "/post/publish",
                         "/post/delete",
                         "/comment",
-                        "/comment/*"
+                        "/comment/*",
+                        "/admin/*"
+                )
+                .excludePathPatterns(
+                        "/user/login",
+                        "/user/register",
+                        "/user/me",
+                        "/user/logout"
                 );
     }
 }
