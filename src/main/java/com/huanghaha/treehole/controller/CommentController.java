@@ -19,14 +19,10 @@ public class CommentController {
     @Resource
     private CommentService commentService;
 
-    /**
-     * 发布评论
-     */
     @PostMapping
     public Result<String> publish(@RequestParam Long postId,
                                   @RequestParam String content,
                                   HttpSession session) {
-        // 前置参数校验
         if (postId == null) {
             return Result.error("帖子ID不能为空");
         }
@@ -43,21 +39,14 @@ public class CommentController {
         return Result.success("评论成功");
     }
 
-    /**
-     * 查看某个帖子的评论
-     */
     @GetMapping("/post/{postId}")
     public Result<List<Comment>> list(@PathVariable Long postId) {
         List<Comment> commentList = commentService.listByPost(postId);
         return Result.success(commentList);
     }
 
-    /**
-     * 删除评论
-     */
     @DeleteMapping("/{id}")
     public Result<String> delete(@PathVariable Long id, HttpSession session) {
-        // 前置参数校验
         if (id == null) {
             return Result.error("评论ID不能为空");
         }

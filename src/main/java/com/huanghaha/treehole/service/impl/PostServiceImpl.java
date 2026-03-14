@@ -1,27 +1,35 @@
 package com.huanghaha.treehole.service.impl;
 
+import com.huanghaha.treehole.common.ForbiddenWordUtil;
 import com.huanghaha.treehole.entity.Post;
 import com.huanghaha.treehole.mapper.PostMapper;
 import com.huanghaha.treehole.service.PostService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.Resource;
+
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
-@Slf4j // 新增日志注解
+@Slf4j
 public class PostServiceImpl implements PostService {
 
-    // 抽取常量，便于维护
     private static final int MAX_CONTENT_LENGTH = 200;
+    private static final int DEFAULT_PAGE = 1;
+    private static final int DEFAULT_SIZE = 10;
+    private static final int MAX_SIZE = 50;
 
     @Resource
     private PostMapper postMapper;
 
+    @Resource
+    private ForbiddenWordUtil forbiddenWordUtil;
+
     @Override
     public void publish(Long userId, String content) {
-        // 二次校验（防止绕过Controller调用）
         if (userId == null) {
             throw new RuntimeException("用户ID不能为空");
         }
@@ -32,10 +40,12 @@ public class PostServiceImpl implements PostService {
             throw new RuntimeException("内容不能超过" + MAX_CONTENT_LENGTH + "字");
         }
 
+        forbiddenWordUtil.check(content);
+
         Post post = new Post();
         post.setUserId(userId);
         post.setContent(content);
-        post.setCreateTime(LocalDateTime.now()); // 手动填充创建时间
+        post.setCreateTime(LocalDateTime.now());
 
         log.info("发布帖子：用户ID={}, 内容={}", userId, content);
         postMapper.insert(post);
@@ -48,8 +58,33 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    public Map<String, Object> listByPage(Integer page, Integer size) {
+        if (page == null || page < 1) {
+            page = DEFAULT_PAGE;
+        }
+        if (size == null || size < 1) {
+            size = DEFAULT_SIZE;
+        }
+        if (size > MAX_SIZE) {
+            size = MAX_SIZE;
+        }
+
+        int offset = (page - 1) * size;
+        List<Post> list = postMapper.findByPage(offset, size);
+        Long total = postMapper.count();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", list);
+        result.put("total", total);
+        result.put("page", page);
+        result.put("size", size);
+
+        log.info("分页查询帖子：page={}, size={}, total={}", page, size, total);
+        return result;
+    }
+
+    @Override
     public void delete(Long postId, Long userId) {
-        // 前置校验，避免空指针
         if (postId == null || userId == null) {
             throw new RuntimeException("帖子ID或用户ID不能为空");
         }

@@ -14,6 +14,14 @@
         SELECT * FROM post ORDER BY create_time DESC
     </select>
 
+    <select id="findByPage" resultType="com.huanghaha.treehole.entity.Post">
+        SELECT * FROM post ORDER BY create_time DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="count" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM post
+    </select>
+
     <select id="findById" resultType="com.huanghaha.treehole.entity.Post">
         SELECT * FROM post WHERE id = #{id}
     </select>

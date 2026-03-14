@@ -39,4 +39,4 @@ logging:
 
 # 自定义敏感词配置（UTF-8 编码，无字符集问题）
 treehole:
-  forbid-words: fuck,shit,ass,bitch,root,admin,管理员,封禁
+  forbidden-words: fuck,shit,ass,bitch,root,admin,管理员,封禁

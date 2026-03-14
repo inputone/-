@@ -2,63 +2,509 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌲 树洞 </title>
-
-    <!-- 第三方库 -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
-
-    <!-- 自定义样式 -->
-    <link rel="stylesheet" href="style.css">
+    <title>树洞系统测试页（通用版）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { padding: 20px; font-family: Arial, sans-serif; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
+        .hidden { display: none; }
+        .form-item { margin: 10px 0; }
+        input, textarea { padding: 8px; width: 300px; margin-right: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 8px 16px; background: #409eff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #66b1ff; }
+        button.danger { background: #f56c6c; }
+        button.danger:hover { background: #f78989; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table, th, td { border: 1px solid #ddd; }
+        th, td { padding: 10px; text-align: left; }
+        #log { width: 100%; height: 200px; margin-top: 10px; padding: 10px; border: 1px solid #eee; border-radius: 4px; resize: none; }
+    </style>
 </head>
 <body>
 <div class="container">
-    <h1>🌲 树洞 · 轻声诉说</h1>
+    <!-- 1. 登录区（默认显示） -->
+    <div id="loginSection" class="section">
+        <h3>用户登录</h3>
+        <div class="form-item">
+            用户名：<input id="loginUsername" placeholder="输入用户名（如admin/test001）">
+        </div>
+        <div class="form-item">
+            密码：<input id="loginPassword" type="password" placeholder="输入密码（如123456）">
+        </div>
+        <button onclick="login()">登录</button>
+        <button onclick="register()">注册新用户</button>
+    </div>
 
-    <!-- 登录区域 -->
-    <div id="authBox" class="auth-box">
-        <h3>登录 / 注册</h3>
-        <input type="text" id="username" placeholder="用户名">
-        <input type="password" id="password" placeholder="密码">
-        <div class="btn-group">
-            <button onclick="auth.login()">登录</button>
-            <button onclick="auth.register()">注册</button>
+    <!-- 2. 普通用户功能区（登录后显示） -->
+    <div id="userSection" class="section hidden">
+        <h3>普通用户功能</h3>
+        <!-- 发布帖子 -->
+        <div class="form-item">
+            <h4>发布帖子</h4>
+            <textarea id="postContent" rows="3" placeholder="输入帖子内容"></textarea>
+            <button onclick="publishPost()">发布</button>
+        </div>
+        <!-- 帖子列表 -->
+        <div class="form-item">
+            <h4>所有帖子</h4>
+            <table id="postTable">
+                <thead><tr><th>ID</th><th>发布者ID</th><th>内容</th><th>时间</th><th>操作</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <!-- 评论区（选中帖子后显示） -->
+        <div id="commentArea" class="hidden">
+            <h4>评论（帖子ID：<span id="currentPostId"></span>）</h4>
+            <div class="form-item">
+                <input id="commentContent" placeholder="输入评论内容">
+                <button onclick="publishComment()">发布评论</button>
+            </div>
+            <table id="commentTable">
+                <thead><tr><th>ID</th><th>评论者ID</th><th>内容</th><th>时间</th><th>操作</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 
-    <!-- 主应用区域 (登录后显示) -->
-    <div id="mainBox" class="main-box hidden">
-        <!-- 用户信息栏 -->
-        <div class="user-bar">
-            <span>当前用户：<span id="currentUser"></span></span>
-            <button onclick="auth.logout()">退出登录</button>
+    <!-- 3. 管理员功能区（仅管理员显示） -->
+    <div id="adminSection" class="section hidden">
+        <h3>管理员功能</h3>
+        <!-- 待审核用户 -->
+        <div class="form-item">
+            <h4>待审核用户</h4>
+            <table id="auditUserTable">
+                <thead><tr><th>ID</th><th>用户名</th><th>注册时间</th><th>操作</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </div>
-
-        <!-- 独立发帖区域 -->
-        <div class="post-card publish-card">
-            <h3>📝 写点什么呢？</h3>
-            <textarea id="postContent" rows="3" placeholder="分享你的心情或秘密..."></textarea>
-            <button onclick="post.publish()">发布帖子</button>
+        <!-- 管理员删除功能 -->
+        <div class="form-item">
+            <h4>强制删除</h4>
+            帖子ID：<input id="adminPostId" placeholder="输入帖子ID">
+            <button class="danger" onclick="adminDeletePost()">删除帖子</button>
+            &nbsp;&nbsp;
+            评论ID：<input id="adminCommentId" placeholder="输入评论ID">
+            <button class="danger" onclick="adminDeleteComment()">删除评论</button>
         </div>
+    </div>
 
-        <!-- 帖子列表区域 -->
-        <div class="posts-section">
-            <h3>📋 所有树洞</h3>
-            <div id="postList"></div>
-
-            <!-- 分页控件 -->
-            <div id="paginationControls" class="pagination-bar">
-                <button id="prevPageBtn" onclick="pagination.changePage(pagination.currentPage - 1)">◀ 上一页</button>
-                <span class="page-indicator" id="pageIndicator">第 1 / 1 页</span>
-                <button id="nextPageBtn" onclick="pagination.changePage(pagination.currentPage + 1)">下一页 ▶</button>
-            </div>
-        </div>
+    <!-- 4. 操作日志 -->
+    <div class="section">
+        <h3>操作日志</h3>
+        <textarea id="log" readonly></textarea>
+        <button onclick="clearLog()">清空日志</button>
     </div>
 </div>
 
-<!-- 引入 JavaScript 模块 -->
-<script src="api.js"></script>
-<script src="main.js"></script>
+<script>
+    // 后端基础地址（请确认和你的后端端口一致）
+    const BASE_URL = "http://localhost:8080";
+    // 当前登录用户信息
+    let currentUser = null;
+    // 当前选中的帖子ID（用于评论）
+    let currentPostId = null;
+
+    // DOM元素
+    const loginSection = document.getElementById('loginSection');
+    const userSection = document.getElementById('userSection');
+    const adminSection = document.getElementById('adminSection');
+    const logTextarea = document.getElementById('log');
+
+    // ========== 通用方法 ==========
+    // 日志打印
+    function log(msg) {
+        const time = new Date().toLocaleString();
+        logTextarea.value += `[${time}] ${msg}\n`;
+        logTextarea.scrollTop = logTextarea.scrollHeight;
+    }
+
+    // 清空日志
+    function clearLog() {
+        logTextarea.value = '';
+    }
+
+    // 格式化时间
+    function formatTime(time) {
+        return time ? new Date(time).toLocaleString() : '';
+    }
+
+    // ========== 登录/注册 ==========
+    // 注册新用户
+    async function register() {
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        if (!username || !password) {
+            alert('用户名/密码不能为空！');
+            return;
+        }
+        try {
+            log(`开始注册用户：${username}`);
+            const res = await fetch(`${BASE_URL}/user/register`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `username=${username}&password=${password}`
+            });
+            const data = await res.json();
+            log(`注册结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+        } catch (err) {
+            log(`注册失败：${err.message}`);
+            alert('注册失败：' + err.message);
+        }
+    }
+
+    // 用户登录
+    async function login() {
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        if (!username || !password) {
+            alert('用户名/密码不能为空！');
+            return;
+        }
+        try {
+            log(`开始登录：${username}`);
+            // 登录请求
+            const res = await fetch(`${BASE_URL}/user/login`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `username=${username}&password=${password}`
+            });
+            const data = await res.json();
+            log(`登录结果：${JSON.stringify(data)}`);
+
+            if (data.code === 200) {
+                // 获取当前用户信息
+                const userRes = await fetch(`${BASE_URL}/user/me`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                const userData = await userRes.json();
+                currentUser = userData.data;
+                log(`当前用户信息：${JSON.stringify(currentUser)}`);
+
+                // 显示对应功能区
+                loginSection.classList.add('hidden');
+                userSection.classList.remove('hidden');
+                // 管理员显示管理员功能区
+                if (currentUser.status === 99) {
+                    adminSection.classList.remove('hidden');
+                }
+
+                alert(`登录成功！欢迎${currentUser.status === 99 ? '管理员' : '普通用户'}：${username}`);
+                // 加载数据
+                loadPostList();
+                if (currentUser.status === 99) {
+                    loadWaitAuditUsers();
+                }
+            } else {
+                alert(data.msg);
+            }
+        } catch (err) {
+            log(`登录失败：${err.message}`);
+            alert('登录失败：' + err.message);
+        }
+    }
+
+    // ========== 普通用户功能 ==========
+    // 加载帖子列表
+    async function loadPostList() {
+        try {
+            log('加载帖子列表...');
+            const res = await fetch(`${BASE_URL}/post/list`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            log(`加载到帖子数量：${data.data?.length || 0}`);
+
+            const tbody = document.querySelector('#postTable tbody');
+            tbody.innerHTML = '';
+            if (data.data && data.data.length > 0) {
+                data.data.forEach(post => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+              <td>${post.id}</td>
+              <td>${post.userId}</td>
+              <td>${post.content}</td>
+              <td>${formatTime(post.createTime)}</td>
+              <td>
+                <button onclick="showComment(${post.id})">查看评论</button>
+                ${post.userId === currentUser.id ? `<button class="danger" onclick="deletePost(${post.id})">删除</button>` : ''}
+              </td>
+            `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" align="center">暂无帖子</td></tr>';
+            }
+        } catch (err) {
+            log(`加载帖子失败：${err.message}`);
+            alert('加载帖子失败：' + err.message);
+        }
+    }
+
+    // 发布帖子
+    async function publishPost() {
+        const content = document.getElementById('postContent').value.trim();
+        if (!content) {
+            alert('帖子内容不能为空！');
+            return;
+        }
+        try {
+            log(`发布帖子：${content}`);
+            const res = await fetch(`${BASE_URL}/post/publish`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `content=${content}`
+            });
+            const data = await res.json();
+            log(`发布结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+            if (data.code === 200) {
+                document.getElementById('postContent').value = '';
+                loadPostList();
+            }
+        } catch (err) {
+            log(`发布帖子失败：${err.message}`);
+            alert('发布帖子失败：' + err.message);
+        }
+    }
+
+    // 删除自己的帖子
+    async function deletePost(postId) {
+        if (!confirm(`确定删除帖子ID=${postId}吗？`)) return;
+        try {
+            log(`删除帖子：ID=${postId}`);
+            const res = await fetch(`${BASE_URL}/post/delete`, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `id=${postId}`
+            });
+            const data = await res.json();
+            log(`删除结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+            if (data.code === 200) {
+                loadPostList();
+            }
+        } catch (err) {
+            log(`删除帖子失败：${err.message}`);
+            alert('删除帖子失败：' + err.message);
+        }
+    }
+
+    // ========== 评论功能 ==========
+    // 显示评论区
+    async function showComment(postId) {
+        currentPostId = postId;
+        document.getElementById('currentPostId').textContent = postId;
+        document.getElementById('commentArea').classList.remove('hidden');
+        loadCommentList(postId);
+    }
+
+    // 加载评论列表
+    async function loadCommentList(postId) {
+        try {
+            log(`加载帖子${postId}的评论...`);
+            const res = await fetch(`${BASE_URL}/comment/post/${postId}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            log(`加载到评论数量：${data.data?.length || 0}`);
+
+            const tbody = document.querySelector('#commentTable tbody');
+            tbody.innerHTML = '';
+            if (data.data && data.data.length > 0) {
+                data.data.forEach(comment => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+              <td>${comment.id}</td>
+              <td>${comment.userId}</td>
+              <td>${comment.content}</td>
+              <td>${formatTime(comment.createTime)}</td>
+              <td>${comment.userId === currentUser.id ? `<button class="danger" onclick="deleteComment(${comment.id})">删除</button>` : ''}</td>
+            `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" align="center">暂无评论</td></tr>';
+            }
+        } catch (err) {
+            log(`加载评论失败：${err.message}`);
+            alert('加载评论失败：' + err.message);
+        }
+    }
+
+    // 发布评论
+    async function publishComment() {
+        if (!currentPostId) {
+            alert('请先选择帖子！');
+            return;
+        }
+        const content = document.getElementById('commentContent').value.trim();
+        if (!content) {
+            alert('评论内容不能为空！');
+            return;
+        }
+        try {
+            log(`发布评论：帖子${currentPostId}，内容=${content}`);
+            const res = await fetch(`${BASE_URL}/comment`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `postId=${currentPostId}&content=${content}`
+            });
+            const data = await res.json();
+            log(`发布结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+            if (data.code === 200) {
+                document.getElementById('commentContent').value = '';
+                loadCommentList(currentPostId);
+            }
+        } catch (err) {
+            log(`发布评论失败：${err.message}`);
+            alert('发布评论失败：' + err.message);
+        }
+    }
+
+    // 删除自己的评论
+    async function deleteComment(commentId) {
+        if (!confirm(`确定删除评论ID=${commentId}吗？`)) return;
+        try {
+            log(`删除评论：ID=${commentId}`);
+            const res = await fetch(`${BASE_URL}/comment/${commentId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            log(`删除结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+            if (data.code === 200) {
+                loadCommentList(currentPostId);
+            }
+        } catch (err) {
+            log(`删除评论失败：${err.message}`);
+            alert('删除评论失败：' + err.message);
+        }
+    }
+
+    // ========== 管理员功能 ==========
+    // 加载待审核用户
+    async function loadWaitAuditUsers() {
+        try {
+            log('加载待审核用户...');
+            const res = await fetch(`${BASE_URL}/admin/waitAuditUsersList`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            log(`加载到待审核用户数量：${data.data?.length || 0}`);
+
+            const tbody = document.querySelector('#auditUserTable tbody');
+            tbody.innerHTML = '';
+            if (data.data && data.data.length > 0) {
+                data.data.forEach(user => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+              <td>${user.id}</td>
+              <td>${user.username}</td>
+              <td>${formatTime(user.createTime)}</td>
+              <td>
+                <button onclick="auditUser('${user.username}', 1)">通过</button>
+                <button class="danger" onclick="auditUser('${user.username}', 2)">封禁</button>
+              </td>
+            `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" align="center">暂无待审核用户</td></tr>';
+            }
+        } catch (err) {
+            log(`加载待审核用户失败：${err.message}`);
+            alert('加载待审核用户失败：' + err.message);
+        }
+    }
+
+    // 审核用户
+    async function auditUser(username, status) {
+        const action = status === 1 ? '通过' : '封禁';
+        if (!confirm(`确定${action}用户【${username}】吗？`)) return;
+        try {
+            log(`审核用户：${username}，状态=${status}`);
+            const res = await fetch(`${BASE_URL}/admin/auditUser`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userName: username, status: status })
+            });
+            const data = await res.json();
+            log(`审核结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+            if (data.code === 200) {
+                loadWaitAuditUsers();
+            }
+        } catch (err) {
+            log(`审核用户失败：${err.message}`);
+            alert('审核用户失败：' + err.message);
+        }
+    }
+
+    // 管理员删除任意帖子
+    async function adminDeletePost() {
+        const postId = document.getElementById('adminPostId').value.trim();
+        if (!postId) {
+            alert('帖子ID不能为空！');
+            return;
+        }
+        if (!confirm(`确定强制删除帖子ID=${postId}吗？`)) return;
+        try {
+            log(`管理员删除帖子：ID=${postId}`);
+            const res = await fetch(`${BASE_URL}/admin/post/${postId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            log(`删除结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+            if (data.code === 200) {
+                loadPostList();
+            }
+        } catch (err) {
+            log(`删除帖子失败：${err.message}`);
+            alert('删除帖子失败：' + err.message);
+        }
+    }
+
+    // 管理员删除任意评论
+    async function adminDeleteComment() {
+        const commentId = document.getElementById('adminCommentId').value.trim();
+        if (!commentId) {
+            alert('评论ID不能为空！');
+            return;
+        }
+        if (!confirm(`确定强制删除评论ID=${commentId}吗？`)) return;
+        try {
+            log(`管理员删除评论：ID=${commentId}`);
+            const res = await fetch(`${BASE_URL}/admin/comment/${commentId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            log(`删除结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+            if (data.code === 200 && currentPostId) {
+                loadCommentList(currentPostId);
+            }
+        } catch (err) {
+            log(`删除评论失败：${err.message}`);
+            alert('删除评论失败：' + err.message);
+        }
+    }
+</script>
 </body>
 </html>

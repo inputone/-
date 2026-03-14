@@ -12,6 +12,10 @@ public interface PostMapper {
 
     List<Post> findAll();
 
+    List<Post> findByPage(Integer offset, Integer pageSize);
+
+    Long count();
+
     Post findById(Long id);
 
     void deleteById(Long id);

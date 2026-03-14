@@ -10,24 +10,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
-/**
- * 统一 Result + 参数校验 + 日志 + 移除手动 try-catch
- */
 @RestController
 @RequestMapping("/post")
-@Slf4j // 新增日志注解
+@Slf4j
 public class PostController {
 
     @Resource
     private PostService postService;
 
-    /**
-     * 发布帖子
-     */
     @PostMapping("/publish")
     public Result<String> publish(@RequestParam String content, HttpSession session) {
-        // 前置参数校验
         if (content == null || content.trim().isEmpty()) {
             return Result.error("帖子内容不能为空");
         }
@@ -41,21 +35,21 @@ public class PostController {
         return Result.success("发布成功");
     }
 
-    /**
-     * 查询所有帖子
-     */
     @GetMapping("/list")
     public Result<List<Post>> list() {
         List<Post> postList = postService.listAll();
         return Result.success(postList);
     }
 
-    /**
-     * 删除帖子
-     */
+    @GetMapping("/page")
+    public Result<Map<String, Object>> page(@RequestParam(required = false) Integer page,
+                                             @RequestParam(required = false) Integer size) {
+        Map<String, Object> result = postService.listByPage(page, size);
+        return Result.success(result);
+    }
+
     @DeleteMapping("/delete")
     public Result<String> delete(@RequestParam Long id, HttpSession session) {
-        // 前置参数校验
         if (id == null) {
             return Result.error("帖子ID不能为空");
         }
@@ -68,4 +62,5 @@ public class PostController {
         postService.delete(id, user.getId());
         return Result.success("删除成功");
     }
+
 }

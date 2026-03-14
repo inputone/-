@@ -2,11 +2,14 @@ package com.huanghaha.treehole.controller;
 
 import com.huanghaha.treehole.common.Result;
 import com.huanghaha.treehole.entity.User;
+import com.huanghaha.treehole.mapper.UserMapper;
 import com.huanghaha.treehole.service.UserService;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 统一 Result + 参数校验 + 日志 + 移除 try-catch
@@ -16,8 +19,10 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j // 新增日志注解
 public class UserController {
 
-    @Autowired
+    @Resource
     private UserService userService;
+    @Resource
+    private UserMapper userMapper;
 
     /**
      * 用户注册
