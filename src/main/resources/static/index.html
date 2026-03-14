@@ -38,7 +38,10 @@
 
     <!-- 2. 普通用户功能区（登录后显示） -->
     <div id="userSection" class="section hidden">
-        <h3>普通用户功能</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3>普通用户功能</h3>
+            <button onclick="logout()" style="background: #909399;">退出登录</button>
+        </div>
         <!-- 发布帖子 -->
         <div class="form-item">
             <h4>发布帖子</h4>
@@ -69,7 +72,10 @@
 
     <!-- 3. 管理员功能区（仅管理员显示） -->
     <div id="adminSection" class="section hidden">
-        <h3>管理员功能</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3>管理员功能</h3>
+            <button onclick="logout()" style="background: #909399;">退出登录</button>
+        </div>
         <!-- 待审核用户 -->
         <div class="form-item">
             <h4>待审核用户</h4>
@@ -104,6 +110,56 @@
     let currentUser = null;
     // 当前选中的帖子ID（用于评论）
     let currentPostId = null;
+
+    // 页面加载时检查登录状态
+    async function checkLoginStatus() {
+        try {
+            const res = await fetch(`${BASE_URL}/user/me`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            if (data.code === 200 && data.data) {
+                currentUser = data.data;
+                loginSection.classList.add('hidden');
+                userSection.classList.remove('hidden');
+                if (currentUser.status === 99) {
+                    adminSection.classList.remove('hidden');
+                    loadWaitAuditUsers();
+                }
+                loadPostList();
+            } else {
+                // 未登录时显示登录区域
+                loginSection.classList.remove('hidden');
+                userSection.classList.add('hidden');
+                adminSection.classList.add('hidden');
+            }
+        } catch (err) {
+            // 未登录时显示登录区域
+            loginSection.classList.remove('hidden');
+            userSection.classList.add('hidden');
+            adminSection.classList.add('hidden');
+        }
+    }
+
+    // 退出登录
+    async function logout() {
+        try {
+            await fetch(`${BASE_URL}/user/logout`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+        } catch (err) {
+            console.log('退出请求失败', err);
+        }
+        currentUser = null;
+        loginSection.classList.remove('hidden');
+        userSection.classList.add('hidden');
+        adminSection.classList.add('hidden');
+    }
+
+    // 页面加载时自动检查登录状态
+    checkLoginStatus();
 
     // DOM元素
     const loginSection = document.getElementById('loginSection');
@@ -398,7 +454,7 @@
     async function loadWaitAuditUsers() {
         try {
             log('加载待审核用户...');
-            const res = await fetch(`${BASE_URL}/admin/waitAuditUsersList`, {
+            const res = await fetch(`${BASE_URL}/admin/waitAuditUserList`, {
                 method: 'GET',
                 credentials: 'include'
             });
