@@ -6,7 +6,6 @@ import com.huanghaha.treehole.mapper.UserMapper;
 import com.huanghaha.treehole.service.UserService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +21,8 @@ public class UserServiceImpl implements UserService {
     @Resource
     private ForbiddenWordUtil forbiddenWordUtil;
 
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Resource
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public void register(String username, String password) {
