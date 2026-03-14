@@ -1,0 +1,103 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+    background: #f5f6f7;
+    margin: 0;
+    padding: 40px 0;
+    color: #333;
+}
+
+.container {
+    width: 760px;
+    margin: auto;
+}
+
+h1 {
+    font-weight: 500;
+    margin-bottom: 30px;
+}
+
+.card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+textarea, input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+textarea {
+    resize: none;
+}
+
+button {
+    margin-top: 10px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: none;
+    background: #1677ff;
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+button:hover {
+    background: #96c5f8;
+}
+
+.btn-link {
+    background:none;
+    color: #888;
+    padding: 3px;
+    margin-left: 10px;
+    font-size: 15px;
+}
+
+.btn-link:hover {
+    color: #040000;
+}
+
+.user-bar {
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.admin-tag {
+    color: #d14646;
+    font-size: 12px;
+    margin-left: 6px;
+}
+
+.post-content {
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+
+    word-break: break-word;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+.comment {
+    margin-top: 10px;
+    padding-left: 12px;
+    border-left: 2px solid #eee;
+    font-size: 14px;
+    color: #555;
+
+    word-break: break-word;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+.hidden {
+    display: none;
+}
