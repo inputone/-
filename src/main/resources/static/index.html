@@ -40,9 +40,8 @@
     <div id="userSection" class="section hidden">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3>普通用户功能</h3>
-            <button onclick="logout()" style="background: #909399;">退出登录</button>
+            <button onclick="logout()" style="background: #409eff;">退出登录</button>
         </div>
-        <!-- 发布帖子 -->
         <div class="form-item">
             <h4>发布帖子</h4>
             <textarea id="postContent" rows="3" placeholder="输入帖子内容"></textarea>
@@ -74,7 +73,33 @@
     <div id="adminSection" class="section hidden">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3>管理员功能</h3>
-            <button onclick="logout()" style="background: #909399;">退出登录</button>
+            <button onclick="logout()" style="background: #409eff;">退出登录</button>
+        </div>
+        <!-- 发布帖子 -->
+        <div class="form-item">
+            <h4>发布帖子</h4>
+            <textarea id="adminPostContent" rows="3" placeholder="输入帖子内容"></textarea>
+            <button onclick="adminPublishPost()">发布</button>
+        </div>
+        <!-- 帖子列表 -->
+        <div class="form-item">
+            <h4>所有帖子</h4>
+            <table id="adminPostTable">
+                <thead><tr><th>ID</th><th>发布者ID</th><th>内容</th><th>时间</th><th>操作</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <!-- 评论区（选中帖子后显示） -->
+        <div id="adminCommentArea" class="hidden">
+            <h4>评论（帖子ID：<span id="adminCurrentPostId"></span>）</h4>
+            <div class="form-item">
+                <input id="adminCommentContent" placeholder="输入评论内容">
+                <button onclick="adminPublishComment()">发布评论</button>
+            </div>
+            <table id="adminCommentTable">
+                <thead><tr><th>ID</th><th>评论者ID</th><th>内容</th><th>时间</th><th>操作</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </div>
         <!-- 待审核用户 -->
         <div class="form-item">
@@ -84,19 +109,10 @@
                 <tbody></tbody>
             </table>
         </div>
-        <!-- 管理员删除功能 -->
-        <div class="form-item">
-            <h4>强制删除</h4>
-            帖子ID：<input id="adminPostId" placeholder="输入帖子ID">
-            <button class="danger" onclick="adminDeletePost()">删除帖子</button>
-            &nbsp;&nbsp;
-            评论ID：<input id="adminCommentId" placeholder="输入评论ID">
-            <button class="danger" onclick="adminDeleteComment()">删除评论</button>
-        </div>
     </div>
 
-    <!-- 4. 操作日志 -->
-    <div class="section">
+    <!-- 4. 操作日志（仅管理员可见） -->
+    <div id="logSection" class="section hidden">
         <h3>操作日志</h3>
         <textarea id="log" readonly></textarea>
         <button onclick="clearLog()">清空日志</button>
@@ -122,10 +138,17 @@
             if (data.code === 200 && data.data) {
                 currentUser = data.data;
                 loginSection.classList.add('hidden');
-                userSection.classList.remove('hidden');
                 if (currentUser.status === 99) {
+                    // 管理员：只显示管理员区域
+                    userSection.classList.add('hidden');
                     adminSection.classList.remove('hidden');
+                    logSection.classList.remove('hidden');
                     loadWaitAuditUsers();
+                } else {
+                    // 普通用户：只显示用户区域
+                    userSection.classList.remove('hidden');
+                    adminSection.classList.add('hidden');
+                    logSection.classList.add('hidden');
                 }
                 loadPostList();
             } else {
@@ -133,12 +156,14 @@
                 loginSection.classList.remove('hidden');
                 userSection.classList.add('hidden');
                 adminSection.classList.add('hidden');
+                logSection.classList.add('hidden');
             }
         } catch (err) {
             // 未登录时显示登录区域
             loginSection.classList.remove('hidden');
             userSection.classList.add('hidden');
             adminSection.classList.add('hidden');
+            logSection.classList.add('hidden');
         }
     }
 
@@ -156,6 +181,152 @@
         loginSection.classList.remove('hidden');
         userSection.classList.add('hidden');
         adminSection.classList.add('hidden');
+        logSection.classList.add('hidden');
+    }
+
+    // ========== 管理员功能 ==========
+    // 管理员发布帖子
+    async function adminPublishPost() {
+        const content = document.getElementById('adminPostContent').value.trim();
+        if (!content) {
+            alert('帖子内容不能为空！');
+            return;
+        }
+        try {
+            log(`管理员发布帖子：${content}`);
+            const res = await fetch(`${BASE_URL}/post/publish`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `content=${content}`
+            });
+            const data = await res.json();
+            log(`发布结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+            if (data.code === 200) {
+                document.getElementById('adminPostContent').value = '';
+                loadPostList();
+            }
+        } catch (err) {
+            log(`发布帖子失败：${err.message}`);
+            alert('发布帖子失败：' + err.message);
+        }
+    }
+
+    // 管理员查看评论
+    async function adminShowComment(postId) {
+        currentPostId = postId;
+        document.getElementById('adminCurrentPostId').textContent = postId;
+        document.getElementById('adminCommentArea').classList.remove('hidden');
+        adminLoadCommentList(postId);
+    }
+
+    // 管理员加载评论列表
+    async function adminLoadCommentList(postId) {
+        try {
+            log(`加载帖子${postId}的评论...`);
+            const res = await fetch(`${BASE_URL}/comment/post/${postId}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            log(`加载到评论数量：${data.data?.length || 0}`);
+
+            const tbody = document.querySelector('#adminCommentTable tbody');
+            tbody.innerHTML = '';
+            if (data.data && data.data.length > 0) {
+                data.data.forEach(comment => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+              <td>${comment.id}</td>
+              <td>${comment.userId}</td>
+              <td>${comment.content}</td>
+              <td>${formatTime(comment.createTime)}</td>
+              <td>${comment.userId === currentUser.id ? `<button class="danger" onclick="adminDeleteComment(${comment.id})">删除</button>` : ''}</td>
+            `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="5" align="center">暂无评论</td></tr>';
+            }
+        } catch (err) {
+            log(`加载评论失败：${err.message}`);
+            alert('加载评论失败：' + err.message);
+        }
+    }
+
+    // 管理员发布评论
+    async function adminPublishComment() {
+        if (!currentPostId) {
+            alert('请先选择帖子！');
+            return;
+        }
+        const content = document.getElementById('adminCommentContent').value.trim();
+        if (!content) {
+            alert('评论内容不能为空！');
+            return;
+        }
+        try {
+            log(`发布评论：帖子${currentPostId}，内容=${content}`);
+            const res = await fetch(`${BASE_URL}/comment`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `postId=${currentPostId}&content=${content}`
+            });
+            const data = await res.json();
+            log(`发布结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+            if (data.code === 200) {
+                document.getElementById('adminCommentContent').value = '';
+                adminLoadCommentList(currentPostId);
+            }
+        } catch (err) {
+            log(`发布评论失败：${err.message}`);
+            alert('发布评论失败：' + err.message);
+        }
+    }
+
+    // 管理员删除帖子
+    async function adminDeletePostById(postId) {
+        if (!confirm(`确定删除帖子ID=${postId}吗？`)) return;
+        try {
+            log(`管理员删除帖子：ID=${postId}`);
+            const res = await fetch(`${BASE_URL}/admin/post/${postId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            log(`删除结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+            if (data.code === 200) {
+                loadPostList();
+            }
+        } catch (err) {
+            log(`删除帖子失败：${err.message}`);
+            alert('删除帖子失败：' + err.message);
+        }
+    }
+
+    // 管理员删除评论
+    async function adminDeleteComment(commentId) {
+        if (!confirm(`确定删除评论ID=${commentId}吗？`)) return;
+        try {
+            log(`管理员删除评论：ID=${commentId}`);
+            const res = await fetch(`${BASE_URL}/admin/comment/${commentId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            log(`删除结果：${JSON.stringify(data)}`);
+            alert(data.msg);
+            if (data.code === 200 && currentPostId) {
+                adminLoadCommentList(currentPostId);
+            }
+        } catch (err) {
+            log(`删除评论失败：${err.message}`);
+            alert('删除评论失败：' + err.message);
+        }
     }
 
     // 页面加载时自动检查登录状态
@@ -165,6 +336,7 @@
     const loginSection = document.getElementById('loginSection');
     const userSection = document.getElementById('userSection');
     const adminSection = document.getElementById('adminSection');
+    const logSection = document.getElementById('logSection');
     const logTextarea = document.getElementById('log');
 
     // ========== 通用方法 ==========
@@ -243,10 +415,17 @@
 
                 // 显示对应功能区
                 loginSection.classList.add('hidden');
-                userSection.classList.remove('hidden');
-                // 管理员显示管理员功能区
                 if (currentUser.status === 99) {
+                    // 管理员：只显示管理员区域
+                    userSection.classList.add('hidden');
                     adminSection.classList.remove('hidden');
+                    logSection.classList.remove('hidden');
+                    loadWaitAuditUsers();
+                } else {
+                    // 普通用户：只显示用户区域
+                    userSection.classList.remove('hidden');
+                    adminSection.classList.add('hidden');
+                    logSection.classList.add('hidden');
                 }
 
                 alert(`登录成功！欢迎${currentUser.status === 99 ? '管理员' : '普通用户'}：${username}`);
@@ -276,25 +455,53 @@
             const data = await res.json();
             log(`加载到帖子数量：${data.data?.length || 0}`);
 
-            const tbody = document.querySelector('#postTable tbody');
-            tbody.innerHTML = '';
+            // 渲染用户区表格
+            const userTbody = document.querySelector('#postTable tbody');
+            userTbody.innerHTML = '';
+            
+            // 渲染管理员区表格
+            const adminTbody = document.querySelector('#adminPostTable tbody');
+            adminTbody.innerHTML = '';
+
             if (data.data && data.data.length > 0) {
                 data.data.forEach(post => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
+                    // 用户区按钮
+                    let userButtons = `<button onclick="showComment(${post.id})">查看评论</button>`;
+                    if (post.userId === currentUser.id) {
+                        userButtons += ` <button class="danger" onclick="deletePost(${post.id})">删除</button>`;
+                    }
+                    
+                    // 管理员区按钮 - 可以删除任何帖子
+                    let adminButtons = `<button onclick="adminShowComment(${post.id})">查看评论</button>`;
+                    if (currentUser.status === 99) {
+                        adminButtons += ` <button class="danger" onclick="adminDeletePostById(${post.id})">删除</button>`;
+                    }
+
+                    // 渲染用户区
+                    const userTr = document.createElement('tr');
+                    userTr.innerHTML = `
               <td>${post.id}</td>
               <td>${post.userId}</td>
               <td>${post.content}</td>
               <td>${formatTime(post.createTime)}</td>
-              <td>
-                <button onclick="showComment(${post.id})">查看评论</button>
-                ${post.userId === currentUser.id ? `<button class="danger" onclick="deletePost(${post.id})">删除</button>` : ''}
-              </td>
+              <td>${userButtons}</td>
             `;
-                    tbody.appendChild(tr);
+                    userTbody.appendChild(userTr);
+
+                    // 渲染管理员区
+                    const adminTr = document.createElement('tr');
+                    adminTr.innerHTML = `
+              <td>${post.id}</td>
+              <td>${post.userId}</td>
+              <td>${post.content}</td>
+              <td>${formatTime(post.createTime)}</td>
+              <td>${adminButtons}</td>
+            `;
+                    adminTbody.appendChild(adminTr);
                 });
             } else {
-                tbody.innerHTML = '<tr><td colspan="5" align="center">暂无帖子</td></tr>';
+                userTbody.innerHTML = '<tr><td colspan="5" align="center">暂无帖子</td></tr>';
+                adminTbody.innerHTML = '<tr><td colspan="5" align="center">暂无帖子</td></tr>';
             }
         } catch (err) {
             log(`加载帖子失败：${err.message}`);
