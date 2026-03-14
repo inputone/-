@@ -21,8 +21,6 @@ public class UserController {
 
     @Resource
     private UserService userService;
-    @Resource
-    private UserMapper userMapper;
 
     /**
      * 用户注册
