@@ -27,10 +27,6 @@ public class PostController {
         }
 
         User user = (User) session.getAttribute("loginUser");
-        if (user == null) {
-            return Result.error("请先登录");
-        }
-
         postService.publish(user.getId(), content);
         return Result.success("发布成功");
     }
@@ -55,10 +51,6 @@ public class PostController {
         }
 
         User user = (User) session.getAttribute("loginUser");
-        if (user == null) {
-            return Result.error("请先登录");
-        }
-
         postService.delete(id, user.getId());
         return Result.success("删除成功");
     }

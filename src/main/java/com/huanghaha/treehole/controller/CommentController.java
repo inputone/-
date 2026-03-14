@@ -31,10 +31,6 @@ public class CommentController {
         }
 
         User user = (User) session.getAttribute("loginUser");
-        if (user == null) {
-            return Result.error("请先登录");
-        }
-
         commentService.publish(user.getId(), postId, content);
         return Result.success("评论成功");
     }
@@ -52,10 +48,6 @@ public class CommentController {
         }
 
         User user = (User) session.getAttribute("loginUser");
-        if (user == null) {
-            return Result.error("请先登录");
-        }
-
         commentService.delete(id, user.getId());
         return Result.success("删除成功");
     }
