@@ -8,6 +8,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+/**
+ * Redis 配置
+ * Key 使用 String 序列化，Value 使用 JDK 序列化（与 Spring Session 保持一致）
+ */
 @Configuration
 public class RedisConfig {
 
@@ -21,8 +25,10 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
 
+        // Key 使用 String 序列化，便于在 Redis 客户端中可读
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
+        // Value 使用 JDK 序列化，与 Spring Session 默认序列化方式一致
         template.setValueSerializer(new JdkSerializationRedisSerializer());
         template.setHashValueSerializer(new JdkSerializationRedisSerializer());
 

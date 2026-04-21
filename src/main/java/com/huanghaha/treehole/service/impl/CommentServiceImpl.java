@@ -12,10 +12,16 @@ import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 评论服务实现
+ * 发布：参数校验 → 敏感词检查 → 入库
+ * 删除：仅允许删除自己的评论，逻辑删除
+ */
 @Service
 @Slf4j
 public class CommentServiceImpl implements CommentService {
 
+    /** 评论内容最大长度 */
     private static final int MAX_CONTENT_LENGTH = 300;
 
     @Resource
@@ -26,6 +32,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public void publish(Long userId, Long postId, String content) {
+        // 参数校验
         if (userId == null || postId == null) {
             throw new BusinessException("用户ID或帖子ID不能为空");
         }
@@ -36,8 +43,10 @@ public class CommentServiceImpl implements CommentService {
             throw new BusinessException("评论不能超过" + MAX_CONTENT_LENGTH + "字");
         }
 
+        // 敏感词检查
         forbiddenWordUtil.check(content);
 
+        // 入库
         Comment comment = new Comment();
         comment.setUserId(userId);
         comment.setPostId(postId);
@@ -60,6 +69,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public void delete(Long commentId, Long userId) {
+        // 校验评论存在性及删除权限
         if (commentId == null || userId == null) {
             throw new BusinessException("评论ID或用户ID不能为空");
         }
