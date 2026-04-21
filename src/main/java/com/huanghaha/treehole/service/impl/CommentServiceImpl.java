@@ -2,6 +2,7 @@ package com.huanghaha.treehole.service.impl;
 
 import com.huanghaha.treehole.common.ForbiddenWordUtil;
 import com.huanghaha.treehole.entity.Comment;
+import com.huanghaha.treehole.exception.BusinessException;
 import com.huanghaha.treehole.mapper.CommentMapper;
 import com.huanghaha.treehole.service.CommentService;
 import lombok.extern.slf4j.Slf4j;
@@ -26,13 +27,13 @@ public class CommentServiceImpl implements CommentService {
     @Override
     public void publish(Long userId, Long postId, String content) {
         if (userId == null || postId == null) {
-            throw new RuntimeException("用户ID或帖子ID不能为空");
+            throw new BusinessException("用户ID或帖子ID不能为空");
         }
         if (content == null || content.trim().isEmpty()) {
-            throw new RuntimeException("评论不能为空");
+            throw new BusinessException("评论不能为空");
         }
         if (content.length() > MAX_CONTENT_LENGTH) {
-            throw new RuntimeException("评论不能超过" + MAX_CONTENT_LENGTH + "字");
+            throw new BusinessException("评论不能超过" + MAX_CONTENT_LENGTH + "字");
         }
 
         forbiddenWordUtil.check(content);
@@ -43,14 +44,14 @@ public class CommentServiceImpl implements CommentService {
         comment.setContent(content);
         comment.setCreateTime(LocalDateTime.now());
 
-        log.info("发布评论：用户ID={}, 帖子ID={}, 内容={}", userId, postId, content);
+        log.info("发布评论：用户ID={}, 帖子ID={}", userId, postId);
         commentMapper.insert(comment);
     }
 
     @Override
     public List<Comment> listByPost(Long postId) {
         if (postId == null) {
-            throw new RuntimeException("帖子ID不能为空");
+            throw new BusinessException("帖子ID不能为空");
         }
 
         log.info("查询帖子评论：帖子ID={}", postId);
@@ -59,17 +60,16 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public void delete(Long commentId, Long userId) {
-        // 前置校验，避免空指针
         if (commentId == null || userId == null) {
-            throw new RuntimeException("评论ID或用户ID不能为空");
+            throw new BusinessException("评论ID或用户ID不能为空");
         }
 
         Comment comment = commentMapper.findById(commentId);
         if (comment == null) {
-            throw new RuntimeException("评论不存在");
+            throw new BusinessException("评论不存在");
         }
         if (!comment.getUserId().equals(userId)) {
-            throw new RuntimeException("无权限删除");
+            throw new BusinessException("无权限删除");
         }
 
         log.info("删除评论：评论ID={}, 用户ID={}", commentId, userId);

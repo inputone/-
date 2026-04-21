@@ -2,6 +2,7 @@ package com.huanghaha.treehole.service.impl;
 
 import com.huanghaha.treehole.common.ForbiddenWordUtil;
 import com.huanghaha.treehole.entity.Post;
+import com.huanghaha.treehole.exception.BusinessException;
 import com.huanghaha.treehole.mapper.PostMapper;
 import com.huanghaha.treehole.service.PostService;
 import lombok.extern.slf4j.Slf4j;
@@ -39,13 +40,13 @@ public class PostServiceImpl implements PostService {
     @Override
     public void publish(Long userId, String content) {
         if (userId == null) {
-            throw new RuntimeException("用户ID不能为空");
+            throw new BusinessException("用户ID不能为空");
         }
         if (content == null || content.trim().isEmpty()) {
-            throw new RuntimeException("内容不能为空");
+            throw new BusinessException("内容不能为空");
         }
         if (content.length() > MAX_CONTENT_LENGTH) {
-            throw new RuntimeException("内容不能超过" + MAX_CONTENT_LENGTH + "字");
+            throw new BusinessException("内容不能超过" + MAX_CONTENT_LENGTH + "字");
         }
 
         forbiddenWordUtil.check(content);
@@ -55,7 +56,7 @@ public class PostServiceImpl implements PostService {
         post.setContent(content);
         post.setCreateTime(LocalDateTime.now());
 
-        log.info("发布帖子：用户ID={}, 内容={}", userId, content);
+        log.info("发布帖子：用户ID={}", userId);
         postMapper.insert(post);
         clearPageCache();
     }
@@ -79,10 +80,15 @@ public class PostServiceImpl implements PostService {
         }
 
         String cacheKey = CACHE_KEY_PREFIX + page + ":" + size;
-        Map<String, Object> cached = (Map<String, Object>) redisTemplate.opsForValue().get(cacheKey);
-        if (cached != null) {
-            log.info("命中缓存：page={}, size={}", page, size);
-            return cached;
+
+        try {
+            Map<String, Object> cached = (Map<String, Object>) redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.info("命中缓存：page={}, size={}", page, size);
+                return cached;
+            }
+        } catch (Exception e) {
+            log.warn("Redis连接失败，跳过缓存读取，降级为数据库查询：{}", e.getMessage());
         }
 
         int offset = (page - 1) * size;
@@ -95,7 +101,11 @@ public class PostServiceImpl implements PostService {
         result.put("page", page);
         result.put("size", size);
 
-        redisTemplate.opsForValue().set(cacheKey, result, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        try {
+            redisTemplate.opsForValue().set(cacheKey, result, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            log.warn("Redis连接失败，跳过缓存写入：{}", e.getMessage());
+        }
         log.info("分页查询帖子：page={}, size={}, total={}", page, size, total);
         return result;
     }
@@ -103,15 +113,15 @@ public class PostServiceImpl implements PostService {
     @Override
     public void delete(Long postId, Long userId) {
         if (postId == null || userId == null) {
-            throw new RuntimeException("帖子ID或用户ID不能为空");
+            throw new BusinessException("帖子ID或用户ID不能为空");
         }
 
         Post post = postMapper.findById(postId);
         if (post == null) {
-            throw new RuntimeException("帖子不存在");
+            throw new BusinessException("帖子不存在");
         }
         if (!post.getUserId().equals(userId)) {
-            throw new RuntimeException("无权限删除");
+            throw new BusinessException("无权限删除");
         }
 
         log.info("删除帖子：帖子ID={}, 用户ID={}", postId, userId);
@@ -120,10 +130,14 @@ public class PostServiceImpl implements PostService {
     }
 
     private void clearPageCache() {
-        Set<String> keys = redisTemplate.keys(CACHE_KEY_PREFIX + "*");
-        if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys);
-            log.info("清除帖子分页缓存");
+        try {
+            Set<String> keys = redisTemplate.keys(CACHE_KEY_PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+                log.info("清除帖子分页缓存，共{}个key", keys.size());
+            }
+        } catch (Exception e) {
+            log.warn("Redis连接失败，跳过缓存清除：{}", e.getMessage());
         }
     }
 }

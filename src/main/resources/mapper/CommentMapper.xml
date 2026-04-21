@@ -6,23 +6,23 @@
 <mapper namespace="com.huanghaha.treehole.mapper.CommentMapper">
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO comment (content, user_id, post_id, create_time)
-        VALUES (#{content}, #{userId}, #{postId}, #{createTime})
+        INSERT INTO comment (content, user_id, post_id, is_deleted, create_time)
+        VALUES (#{content}, #{userId}, #{postId}, 0, #{createTime})
     </insert>
 
     <select id="findByPostId" resultType="com.huanghaha.treehole.entity.Comment">
         SELECT * FROM comment
-        WHERE post_id = #{postId}
+        WHERE post_id = #{postId} AND is_deleted = 0
         ORDER BY create_time ASC
     </select>
 
     <select id="findById" resultType="com.huanghaha.treehole.entity.Comment">
         SELECT * FROM comment
-        WHERE id = #{id}
+        WHERE id = #{id} AND is_deleted = 0
     </select>
 
-    <delete id="deleteById">
-        DELETE FROM comment WHERE id = #{id}
-    </delete>
+    <update id="deleteById">
+        UPDATE comment SET is_deleted = 1 WHERE id = #{id}
+    </update>
 
 </mapper>

@@ -18,6 +18,11 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns(
                         "/post/publish",
                         "/post/delete",
+                        "/post/like/*",
+                        "/post/liked/*",
+                        "/post/favorite/*",
+                        "/post/favorited/*",
+                        "/post/favorites",
                         "/comment",
                         "/comment/*",
                         "/admin/*"

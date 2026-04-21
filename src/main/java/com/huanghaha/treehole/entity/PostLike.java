@@ -1,13 +1,13 @@
 package com.huanghaha.treehole.entity;
 
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
-public class Comment {
+public class PostLike {
 
     private Long id;
-    private String content;
     private Long userId;
     private Long postId;
     private Integer isDeleted;

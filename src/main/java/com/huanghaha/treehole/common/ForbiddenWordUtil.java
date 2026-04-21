@@ -1,5 +1,6 @@
 package com.huanghaha.treehole.common;
 
+import com.huanghaha.treehole.exception.BusinessException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +22,7 @@ public class ForbiddenWordUtil {
         for (String word : words) {
             String trimWord = word.trim();
             if (!trimWord.isEmpty() && content.contains(trimWord)) {
-                throw new RuntimeException("内容包含敏感词: " + trimWord);
+                throw new BusinessException("内容包含敏感词: " + trimWord);
             }
         }
     }

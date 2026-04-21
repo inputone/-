@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.huanghaha.treehole.mapper.PostFavoriteMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post_favorite (user_id, post_id, is_deleted, create_time)
+        VALUES (#{userId}, #{postId}, 0, #{createTime})
+    </insert>
+
+    <select id="findByUserIdAndPostId" resultType="com.huanghaha.treehole.entity.PostFavorite">
+        SELECT * FROM post_favorite
+        WHERE user_id = #{userId} AND post_id = #{postId} AND is_deleted = 0
+    </select>
+
+    <update id="deleteById">
+        UPDATE post_favorite SET is_deleted = 1 WHERE id = #{id}
+    </update>
+
+    <select id="findByUserId" resultType="com.huanghaha.treehole.entity.PostFavorite">
+        SELECT * FROM post_favorite
+        WHERE user_id = #{userId} AND is_deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

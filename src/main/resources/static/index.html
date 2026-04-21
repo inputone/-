@@ -1,773 +1,357 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <title>树洞系统测试页（通用版）</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { padding: 20px; font-family: Arial, sans-serif; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .section { margin: 20px 0; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
-        .hidden { display: none; }
-        .form-item { margin: 10px 0; }
-        input, textarea { padding: 8px; width: 300px; margin-right: 10px; border: 1px solid #ddd; border-radius: 4px; }
-        button { padding: 8px 16px; background: #409eff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #66b1ff; }
-        button.danger { background: #f56c6c; }
-        button.danger:hover { background: #f78989; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        table, th, td { border: 1px solid #ddd; }
-        th, td { padding: 10px; text-align: left; }
-        #log { width: 100%; height: 200px; margin-top: 10px; padding: 10px; border: 1px solid #eee; border-radius: 4px; resize: none; }
-    </style>
-</head>
-<body>
-<div class="container">
-    <!-- 1. 登录区（默认显示） -->
-    <div id="loginSection" class="section">
-        <h3>用户登录</h3>
-        <div class="form-item">
-            用户名：<input id="loginUsername" placeholder="输入用户名（如admin/test001）">
-        </div>
-        <div class="form-item">
-            密码：<input id="loginPassword" type="password" placeholder="输入密码（如123456）">
-        </div>
-        <button onclick="login()">登录</button>
-        <button onclick="register()">注册新用户</button>
-    </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>树洞 - 匿名社区</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div class="header">
+        <h1>🌳 树洞</h1>
+        <p>说出你的心事，这里只有倾听</p>
+      </div>
 
-    <!-- 2. 普通用户功能区（登录后显示） -->
-    <div id="userSection" class="section hidden">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3>普通用户功能</h3>
-            <button onclick="logout()" style="background: #409eff;">退出登录</button>
+      <div v-if="state.view === 'login'" class="card">
+        <div class="card-title"><span class="icon">🔐</span> 登录 / 注册</div>
+        <div class="form-group">
+          <label>用户名</label>
+          <input
+            type="text"
+            class="input"
+            v-model="state.loginUsername"
+            placeholder="输入用户名"
+          />
         </div>
-        <div class="form-item">
-            <h4>发布帖子</h4>
-            <textarea id="postContent" rows="3" placeholder="输入帖子内容"></textarea>
-            <button onclick="publishPost()">发布</button>
+        <div class="form-group">
+          <label>密码</label>
+          <input
+            type="password"
+            class="input"
+            v-model="state.loginPassword"
+            placeholder="输入密码（至少6位）"
+            @keyup.enter="login"
+          />
         </div>
-        <!-- 帖子列表 -->
-        <div class="form-item">
-            <h4>所有帖子</h4>
-            <table id="postTable">
-                <thead><tr><th>ID</th><th>发布者ID</th><th>内容</th><th>时间</th><th>操作</th></tr></thead>
-                <tbody></tbody>
-            </table>
+        <div class="btn-row">
+          <button class="btn btn-primary" @click="login">登录</button>
+          <button class="btn btn-ghost" @click="register">注册新用户</button>
         </div>
-        <!-- 评论区（选中帖子后显示） -->
-        <div id="commentArea" class="hidden">
-            <h4>评论（帖子ID：<span id="currentPostId"></span>）</h4>
-            <div class="form-item">
-                <input id="commentContent" placeholder="输入评论内容">
-                <button onclick="publishComment()">发布评论</button>
+      </div>
+
+      <div v-if="state.view === 'main'">
+        <div class="user-bar">
+          <div class="user-info">
+            <div class="avatar">
+              {{ state.user.username.charAt(0).toUpperCase() }}
             </div>
-            <table id="commentTable">
-                <thead><tr><th>ID</th><th>评论者ID</th><th>内容</th><th>时间</th><th>操作</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- 3. 管理员功能区（仅管理员显示） -->
-    <div id="adminSection" class="section hidden">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3>管理员功能</h3>
-            <button onclick="logout()" style="background: #409eff;">退出登录</button>
-        </div>
-        <!-- 发布帖子 -->
-        <div class="form-item">
-            <h4>发布帖子</h4>
-            <textarea id="adminPostContent" rows="3" placeholder="输入帖子内容"></textarea>
-            <button onclick="adminPublishPost()">发布</button>
-        </div>
-        <!-- 帖子列表 -->
-        <div class="form-item">
-            <h4>所有帖子</h4>
-            <table id="adminPostTable">
-                <thead><tr><th>ID</th><th>发布者ID</th><th>内容</th><th>时间</th><th>操作</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <!-- 评论区（选中帖子后显示） -->
-        <div id="adminCommentArea" class="hidden">
-            <h4>评论（帖子ID：<span id="adminCurrentPostId"></span>）</h4>
-            <div class="form-item">
-                <input id="adminCommentContent" placeholder="输入评论内容">
-                <button onclick="adminPublishComment()">发布评论</button>
+            <div>
+              <div class="user-name">{{ state.user.username }}</div>
+              <div class="user-role" v-if="state.user.status === 99">
+                管理员
+              </div>
             </div>
-            <table id="adminCommentTable">
-                <thead><tr><th>ID</th><th>评论者ID</th><th>内容</th><th>时间</th><th>操作</th></tr></thead>
-                <tbody></tbody>
-            </table>
+          </div>
+          <button class="btn btn-ghost btn-sm" @click="logout">退出</button>
         </div>
-        <!-- 待审核用户 -->
-        <div class="form-item">
-            <h4>待审核用户</h4>
-            <table id="auditUserTable">
-                <thead><tr><th>ID</th><th>用户名</th><th>注册时间</th><th>操作</th></tr></thead>
-                <tbody></tbody>
-            </table>
+
+        <div class="tab-bar">
+          <button
+            class="tab"
+            :class="{ active: state.tab === 'posts' }"
+            @click="switchTab('posts')"
+          >
+            树洞
+          </button>
+          <button
+            class="tab"
+            :class="{ active: state.tab === 'favorites' }"
+            @click="switchTab('favorites')"
+          >
+            收藏
+          </button>
+          <button
+            class="tab"
+            :class="{ active: state.tab === 'admin' }"
+            v-if="state.user.status === 99"
+            @click="switchTab('admin')"
+          >
+            管理
+          </button>
         </div>
+
+        <div v-if="state.tab === 'posts' && !state.currentPost">
+          <div class="card">
+            <div class="card-title"><span class="icon">✏️</span> 说点什么</div>
+            <div class="form-group">
+              <textarea
+                class="textarea"
+                v-model="state.postContent"
+                placeholder="匿名分享你的心事...（最多200字）"
+                maxlength="200"
+              ></textarea>
+              <div class="textarea-counter">
+                {{ state.postContent.length }}/200
+              </div>
+            </div>
+            <div style="text-align: right">
+              <button class="btn btn-primary" @click="publishPost">发布</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span class="icon">📋</span> 树洞列表</div>
+
+            <div v-if="state.loading" class="loading">加载中...</div>
+            <div v-else-if="state.posts.length === 0" class="empty-state">
+              <div class="icon">🌱</div>
+              <p>树洞空空如也，来发第一条</p>
+            </div>
+            <div v-else>
+              <div class="post-item" v-for="post in state.posts" :key="post.id">
+                <div class="post-content">{{ post.content }}</div>
+                <div class="post-meta">
+                  <span>{{ formatTime(post.createTime) }}</span>
+                </div>
+                <div class="post-actions">
+                  <button
+                    class="btn btn-ghost btn-sm action-btn"
+                    :class="{ active: state.likedPosts[post.id] }"
+                    @click="toggleLike(post.id)"
+                  >
+                    {{ state.likedPosts[post.id] ? '❤️' : '🤍' }} {{
+                    post.likeCount || 0 }}
+                  </button>
+                  <button
+                    class="btn btn-ghost btn-sm action-btn"
+                    :class="{ active: state.favoritedPosts[post.id] }"
+                    @click="toggleFavorite(post.id)"
+                  >
+                    {{ state.favoritedPosts[post.id] ? '⭐' : '☆' }} {{
+                    post.favoriteCount || 0 }}
+                  </button>
+                  <button class="btn btn-ghost btn-sm" @click="openPost(post)">
+                    查看评论
+                  </button>
+                  <button
+                    v-if="canDeletePost(post)"
+                    class="btn btn-danger btn-sm"
+                    @click="state.user.status === 99 ? adminDeletePost(post.id) : deletePost(post.id)"
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
+
+              <div class="pagination" v-if="totalPages > 1">
+                <span class="pagination-info">共 {{ state.total }} 条</span>
+                <button
+                  class="page-btn"
+                  :disabled="state.page <= 1"
+                  @click="goToPage(state.page - 1)"
+                >
+                  ← 上一页
+                </button>
+                <button
+                  v-for="p in getPageNumbers()"
+                  :key="p"
+                  class="page-btn"
+                  :class="{ active: p === state.page }"
+                  @click="typeof p === 'number' && goToPage(p)"
+                >
+                  {{ p }}
+                </button>
+                <button
+                  class="page-btn"
+                  :disabled="state.page >= totalPages"
+                  @click="goToPage(state.page + 1)"
+                >
+                  下一页 →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="state.tab === 'posts' && state.currentPost">
+          <div class="back-btn" @click="closeComment">← 返回列表</div>
+
+          <div class="card">
+            <div class="post-detail">
+              <div class="post-detail-content">
+                {{ state.currentPost.content }}
+              </div>
+              <div class="post-detail-meta">
+                {{ formatTime(state.currentPost.createTime) }}
+              </div>
+              <div class="post-actions" style="margin-top: 12px">
+                <button
+                  class="btn btn-ghost btn-sm action-btn"
+                  :class="{ active: state.likedPosts[state.currentPost.id] }"
+                  @click="toggleLike(state.currentPost.id)"
+                >
+                  {{ state.likedPosts[state.currentPost.id] ? '❤️' : '🤍' }} {{
+                  state.currentPost.likeCount || 0 }}
+                </button>
+                <button
+                  class="btn btn-ghost btn-sm action-btn"
+                  :class="{ active: state.favoritedPosts[state.currentPost.id] }"
+                  @click="toggleFavorite(state.currentPost.id)"
+                >
+                  {{ state.favoritedPosts[state.currentPost.id] ? '⭐' : '☆' }}
+                  {{ state.currentPost.favoriteCount || 0 }}
+                </button>
+              </div>
+            </div>
+
+            <div class="comment-input">
+              <textarea
+                class="textarea"
+                v-model="state.commentContent"
+                placeholder="写下你的评论...（最多300字）"
+                maxlength="300"
+              ></textarea>
+              <button class="btn btn-primary" @click="publishComment">
+                发送
+              </button>
+            </div>
+
+            <div v-if="state.loading" class="loading">加载中...</div>
+            <div
+              v-else-if="state.comments.length === 0"
+              class="empty-state"
+              style="padding: 20px"
+            >
+              <div class="icon">💬</div>
+              <p>暂无评论，来评论吧</p>
+            </div>
+            <div
+              v-else
+              class="comment-item"
+              v-for="comment in state.comments"
+              :key="comment.id"
+            >
+              <div class="comment-content">{{ comment.content }}</div>
+              <div class="comment-meta">
+                <span>{{ formatTime(comment.createTime) }}</span>
+                <button
+                  v-if="canDeleteComment(comment)"
+                  class="btn btn-danger btn-sm"
+                  @click="state.user.status === 99 ? adminDeleteComment(comment.id) : deleteComment(comment.id)"
+                >
+                  删除
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="state.tab === 'favorites'">
+          <div class="card">
+            <div class="card-title"><span class="icon">⭐</span> 我的收藏</div>
+
+            <div v-if="state.loading" class="loading">加载中...</div>
+            <div
+              v-else-if="state.favoritePosts.length === 0"
+              class="empty-state"
+            >
+              <div class="icon">☆</div>
+              <p>暂无收藏</p>
+            </div>
+            <div v-else>
+              <div
+                class="post-item"
+                v-for="post in state.favoritePosts"
+                :key="post.id"
+              >
+                <div class="post-content">{{ post.content }}</div>
+                <div class="post-meta">
+                  <span>{{ formatTime(post.createTime) }}</span>
+                </div>
+                <div class="post-actions">
+                  <button
+                    class="btn btn-ghost btn-sm action-btn"
+                    :class="{ active: state.likedPosts[post.id] }"
+                    @click="toggleLike(post.id)"
+                  >
+                    {{ state.likedPosts[post.id] ? '❤️' : '🤍' }} {{
+                    post.likeCount || 0 }}
+                  </button>
+                  <button
+                    class="btn btn-ghost btn-sm action-btn active"
+                    @click="toggleFavorite(post.id)"
+                  >
+                    ⭐ {{ post.favoriteCount || 0 }}
+                  </button>
+                  <button
+                    class="btn btn-ghost btn-sm"
+                    @click="openPost(post); state.tab = 'posts'"
+                  >
+                    查看评论
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="state.tab === 'admin'">
+          <div class="card">
+            <div class="card-title">
+              <span class="icon">👥</span> 待审核用户
+            </div>
+
+            <div v-if="state.loading" class="loading">加载中...</div>
+            <div
+              v-else-if="state.waitAuditUsers.length === 0"
+              class="empty-state"
+            >
+              <div class="icon">✅</div>
+              <p>暂无待审核用户</p>
+            </div>
+            <div v-else>
+              <div
+                class="audit-item"
+                v-for="user in state.waitAuditUsers"
+                :key="user.id"
+              >
+                <div class="audit-info">
+                  <div class="audit-name">{{ user.username }}</div>
+                  <div class="audit-time">
+                    {{ formatTime(user.createTime) }}
+                  </div>
+                </div>
+                <div class="audit-actions">
+                  <button
+                    class="btn btn-success btn-sm"
+                    @click="auditUser(user.username, 1)"
+                  >
+                    通过
+                  </button>
+                  <button
+                    class="btn btn-danger btn-sm"
+                    @click="auditUser(user.username, 2)"
+                  >
+                    封禁
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="state.toast"
+        class="toast"
+        :class="'toast-' + state.toast.type"
+      >
+        {{ state.toast.msg }}
+      </div>
     </div>
 
-    <!-- 4. 操作日志（仅管理员可见） -->
-    <div id="logSection" class="section hidden">
-        <h3>操作日志</h3>
-        <textarea id="log" readonly></textarea>
-        <button onclick="clearLog()">清空日志</button>
-    </div>
-</div>
-
-<script>
-    // 后端基础地址（请确认和你的后端端口一致）
-    const BASE_URL = "http://localhost:8080";
-    // 当前登录用户信息
-    let currentUser = null;
-    // 当前选中的帖子ID（用于评论）
-    let currentPostId = null;
-
-    // 页面加载时检查登录状态
-    async function checkLoginStatus() {
-        try {
-            const res = await fetch(`${BASE_URL}/user/me`, {
-                method: 'GET',
-                credentials: 'include'
-            });
-            const data = await res.json();
-            if (data.code === 200 && data.data) {
-                currentUser = data.data;
-                loginSection.classList.add('hidden');
-                if (currentUser.status === 99) {
-                    // 管理员：只显示管理员区域
-                    userSection.classList.add('hidden');
-                    adminSection.classList.remove('hidden');
-                    logSection.classList.remove('hidden');
-                    loadWaitAuditUsers();
-                } else {
-                    // 普通用户：只显示用户区域
-                    userSection.classList.remove('hidden');
-                    adminSection.classList.add('hidden');
-                    logSection.classList.add('hidden');
-                }
-                loadPostList();
-            } else {
-                // 未登录时显示登录区域
-                loginSection.classList.remove('hidden');
-                userSection.classList.add('hidden');
-                adminSection.classList.add('hidden');
-                logSection.classList.add('hidden');
-            }
-        } catch (err) {
-            // 未登录时显示登录区域
-            loginSection.classList.remove('hidden');
-            userSection.classList.add('hidden');
-            adminSection.classList.add('hidden');
-            logSection.classList.add('hidden');
-        }
-    }
-
-    // 退出登录
-    async function logout() {
-        try {
-            await fetch(`${BASE_URL}/user/logout`, {
-                method: 'GET',
-                credentials: 'include'
-            });
-        } catch (err) {
-            console.log('退出请求失败', err);
-        }
-        currentUser = null;
-        loginSection.classList.remove('hidden');
-        userSection.classList.add('hidden');
-        adminSection.classList.add('hidden');
-        logSection.classList.add('hidden');
-    }
-
-    // ========== 管理员功能 ==========
-    // 管理员发布帖子
-    async function adminPublishPost() {
-        const content = document.getElementById('adminPostContent').value.trim();
-        if (!content) {
-            alert('帖子内容不能为空！');
-            return;
-        }
-        try {
-            log(`管理员发布帖子：${content}`);
-            const res = await fetch(`${BASE_URL}/post/publish`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `content=${content}`
-            });
-            const data = await res.json();
-            log(`发布结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-            if (data.code === 200) {
-                document.getElementById('adminPostContent').value = '';
-                loadPostList();
-            }
-        } catch (err) {
-            log(`发布帖子失败：${err.message}`);
-            alert('发布帖子失败：' + err.message);
-        }
-    }
-
-    // 管理员查看评论
-    async function adminShowComment(postId) {
-        currentPostId = postId;
-        document.getElementById('adminCurrentPostId').textContent = postId;
-        document.getElementById('adminCommentArea').classList.remove('hidden');
-        adminLoadCommentList(postId);
-    }
-
-    // 管理员加载评论列表
-    async function adminLoadCommentList(postId) {
-        try {
-            log(`加载帖子${postId}的评论...`);
-            const res = await fetch(`${BASE_URL}/comment/post/${postId}`, {
-                method: 'GET',
-                credentials: 'include'
-            });
-            const data = await res.json();
-            log(`加载到评论数量：${data.data?.length || 0}`);
-
-            const tbody = document.querySelector('#adminCommentTable tbody');
-            tbody.innerHTML = '';
-            if (data.data && data.data.length > 0) {
-                data.data.forEach(comment => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-              <td>${comment.id}</td>
-              <td>${comment.userId}</td>
-              <td>${comment.content}</td>
-              <td>${formatTime(comment.createTime)}</td>
-              <td>${comment.userId === currentUser.id ? `<button class="danger" onclick="adminDeleteComment(${comment.id})">删除</button>` : ''}</td>
-            `;
-                    tbody.appendChild(tr);
-                });
-            } else {
-                tbody.innerHTML = '<tr><td colspan="5" align="center">暂无评论</td></tr>';
-            }
-        } catch (err) {
-            log(`加载评论失败：${err.message}`);
-            alert('加载评论失败：' + err.message);
-        }
-    }
-
-    // 管理员发布评论
-    async function adminPublishComment() {
-        if (!currentPostId) {
-            alert('请先选择帖子！');
-            return;
-        }
-        const content = document.getElementById('adminCommentContent').value.trim();
-        if (!content) {
-            alert('评论内容不能为空！');
-            return;
-        }
-        try {
-            log(`发布评论：帖子${currentPostId}，内容=${content}`);
-            const res = await fetch(`${BASE_URL}/comment`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `postId=${currentPostId}&content=${content}`
-            });
-            const data = await res.json();
-            log(`发布结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-            if (data.code === 200) {
-                document.getElementById('adminCommentContent').value = '';
-                adminLoadCommentList(currentPostId);
-            }
-        } catch (err) {
-            log(`发布评论失败：${err.message}`);
-            alert('发布评论失败：' + err.message);
-        }
-    }
-
-    // 管理员删除帖子
-    async function adminDeletePostById(postId) {
-        if (!confirm(`确定删除帖子ID=${postId}吗？`)) return;
-        try {
-            log(`管理员删除帖子：ID=${postId}`);
-            const res = await fetch(`${BASE_URL}/admin/post/${postId}`, {
-                method: 'DELETE',
-                credentials: 'include'
-            });
-            const data = await res.json();
-            log(`删除结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-            if (data.code === 200) {
-                loadPostList();
-            }
-        } catch (err) {
-            log(`删除帖子失败：${err.message}`);
-            alert('删除帖子失败：' + err.message);
-        }
-    }
-
-    // 管理员删除评论
-    async function adminDeleteComment(commentId) {
-        if (!confirm(`确定删除评论ID=${commentId}吗？`)) return;
-        try {
-            log(`管理员删除评论：ID=${commentId}`);
-            const res = await fetch(`${BASE_URL}/admin/comment/${commentId}`, {
-                method: 'DELETE',
-                credentials: 'include'
-            });
-            const data = await res.json();
-            log(`删除结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-            if (data.code === 200 && currentPostId) {
-                adminLoadCommentList(currentPostId);
-            }
-        } catch (err) {
-            log(`删除评论失败：${err.message}`);
-            alert('删除评论失败：' + err.message);
-        }
-    }
-
-    // 页面加载时自动检查登录状态
-    checkLoginStatus();
-
-    // DOM元素
-    const loginSection = document.getElementById('loginSection');
-    const userSection = document.getElementById('userSection');
-    const adminSection = document.getElementById('adminSection');
-    const logSection = document.getElementById('logSection');
-    const logTextarea = document.getElementById('log');
-
-    // ========== 通用方法 ==========
-    // 日志打印
-    function log(msg) {
-        const time = new Date().toLocaleString();
-        logTextarea.value += `[${time}] ${msg}\n`;
-        logTextarea.scrollTop = logTextarea.scrollHeight;
-    }
-
-    // 清空日志
-    function clearLog() {
-        logTextarea.value = '';
-    }
-
-    // 格式化时间
-    function formatTime(time) {
-        return time ? new Date(time).toLocaleString() : '';
-    }
-
-    // ========== 登录/注册 ==========
-    // 注册新用户
-    async function register() {
-        const username = document.getElementById('loginUsername').value.trim();
-        const password = document.getElementById('loginPassword').value.trim();
-        if (!username || !password) {
-            alert('用户名/密码不能为空！');
-            return;
-        }
-        try {
-            log(`开始注册用户：${username}`);
-            const res = await fetch(`${BASE_URL}/user/register`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `username=${username}&password=${password}`
-            });
-            const data = await res.json();
-            log(`注册结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-        } catch (err) {
-            log(`注册失败：${err.message}`);
-            alert('注册失败：' + err.message);
-        }
-    }
-
-    // 用户登录
-    async function login() {
-        const username = document.getElementById('loginUsername').value.trim();
-        const password = document.getElementById('loginPassword').value.trim();
-        if (!username || !password) {
-            alert('用户名/密码不能为空！');
-            return;
-        }
-        try {
-            log(`开始登录：${username}`);
-            // 登录请求
-            const res = await fetch(`${BASE_URL}/user/login`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `username=${username}&password=${password}`
-            });
-            const data = await res.json();
-            log(`登录结果：${JSON.stringify(data)}`);
-
-            if (data.code === 200) {
-                // 获取当前用户信息
-                const userRes = await fetch(`${BASE_URL}/user/me`, {
-                    method: 'GET',
-                    credentials: 'include'
-                });
-                const userData = await userRes.json();
-                currentUser = userData.data;
-                log(`当前用户信息：${JSON.stringify(currentUser)}`);
-
-                // 显示对应功能区
-                loginSection.classList.add('hidden');
-                if (currentUser.status === 99) {
-                    // 管理员：只显示管理员区域
-                    userSection.classList.add('hidden');
-                    adminSection.classList.remove('hidden');
-                    logSection.classList.remove('hidden');
-                    loadWaitAuditUsers();
-                } else {
-                    // 普通用户：只显示用户区域
-                    userSection.classList.remove('hidden');
-                    adminSection.classList.add('hidden');
-                    logSection.classList.add('hidden');
-                }
-
-                alert(`登录成功！欢迎${currentUser.status === 99 ? '管理员' : '普通用户'}：${username}`);
-                // 加载数据
-                loadPostList();
-                if (currentUser.status === 99) {
-                    loadWaitAuditUsers();
-                }
-            } else {
-                alert(data.msg);
-            }
-        } catch (err) {
-            log(`登录失败：${err.message}`);
-            alert('登录失败：' + err.message);
-        }
-    }
-
-    // ========== 普通用户功能 ==========
-    // 加载帖子列表
-    async function loadPostList() {
-        try {
-            log('加载帖子列表...');
-            const res = await fetch(`${BASE_URL}/post/list`, {
-                method: 'GET',
-                credentials: 'include'
-            });
-            const data = await res.json();
-            log(`加载到帖子数量：${data.data?.length || 0}`);
-
-            // 渲染用户区表格
-            const userTbody = document.querySelector('#postTable tbody');
-            userTbody.innerHTML = '';
-            
-            // 渲染管理员区表格
-            const adminTbody = document.querySelector('#adminPostTable tbody');
-            adminTbody.innerHTML = '';
-
-            if (data.data && data.data.length > 0) {
-                data.data.forEach(post => {
-                    // 用户区按钮
-                    let userButtons = `<button onclick="showComment(${post.id})">查看评论</button>`;
-                    if (post.userId === currentUser.id) {
-                        userButtons += ` <button class="danger" onclick="deletePost(${post.id})">删除</button>`;
-                    }
-                    
-                    // 管理员区按钮 - 可以删除任何帖子
-                    let adminButtons = `<button onclick="adminShowComment(${post.id})">查看评论</button>`;
-                    if (currentUser.status === 99) {
-                        adminButtons += ` <button class="danger" onclick="adminDeletePostById(${post.id})">删除</button>`;
-                    }
-
-                    // 渲染用户区
-                    const userTr = document.createElement('tr');
-                    userTr.innerHTML = `
-              <td>${post.id}</td>
-              <td>${post.userId}</td>
-              <td>${post.content}</td>
-              <td>${formatTime(post.createTime)}</td>
-              <td>${userButtons}</td>
-            `;
-                    userTbody.appendChild(userTr);
-
-                    // 渲染管理员区
-                    const adminTr = document.createElement('tr');
-                    adminTr.innerHTML = `
-              <td>${post.id}</td>
-              <td>${post.userId}</td>
-              <td>${post.content}</td>
-              <td>${formatTime(post.createTime)}</td>
-              <td>${adminButtons}</td>
-            `;
-                    adminTbody.appendChild(adminTr);
-                });
-            } else {
-                userTbody.innerHTML = '<tr><td colspan="5" align="center">暂无帖子</td></tr>';
-                adminTbody.innerHTML = '<tr><td colspan="5" align="center">暂无帖子</td></tr>';
-            }
-        } catch (err) {
-            log(`加载帖子失败：${err.message}`);
-            alert('加载帖子失败：' + err.message);
-        }
-    }
-
-    // 发布帖子
-    async function publishPost() {
-        const content = document.getElementById('postContent').value.trim();
-        if (!content) {
-            alert('帖子内容不能为空！');
-            return;
-        }
-        try {
-            log(`发布帖子：${content}`);
-            const res = await fetch(`${BASE_URL}/post/publish`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `content=${content}`
-            });
-            const data = await res.json();
-            log(`发布结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-            if (data.code === 200) {
-                document.getElementById('postContent').value = '';
-                loadPostList();
-            }
-        } catch (err) {
-            log(`发布帖子失败：${err.message}`);
-            alert('发布帖子失败：' + err.message);
-        }
-    }
-
-    // 删除自己的帖子
-    async function deletePost(postId) {
-        if (!confirm(`确定删除帖子ID=${postId}吗？`)) return;
-        try {
-            log(`删除帖子：ID=${postId}`);
-            const res = await fetch(`${BASE_URL}/post/delete`, {
-                method: 'DELETE',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `id=${postId}`
-            });
-            const data = await res.json();
-            log(`删除结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-            if (data.code === 200) {
-                loadPostList();
-            }
-        } catch (err) {
-            log(`删除帖子失败：${err.message}`);
-            alert('删除帖子失败：' + err.message);
-        }
-    }
-
-    // ========== 评论功能 ==========
-    // 显示评论区
-    async function showComment(postId) {
-        currentPostId = postId;
-        document.getElementById('currentPostId').textContent = postId;
-        document.getElementById('commentArea').classList.remove('hidden');
-        loadCommentList(postId);
-    }
-
-    // 加载评论列表
-    async function loadCommentList(postId) {
-        try {
-            log(`加载帖子${postId}的评论...`);
-            const res = await fetch(`${BASE_URL}/comment/post/${postId}`, {
-                method: 'GET',
-                credentials: 'include'
-            });
-            const data = await res.json();
-            log(`加载到评论数量：${data.data?.length || 0}`);
-
-            const tbody = document.querySelector('#commentTable tbody');
-            tbody.innerHTML = '';
-            if (data.data && data.data.length > 0) {
-                data.data.forEach(comment => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-              <td>${comment.id}</td>
-              <td>${comment.userId}</td>
-              <td>${comment.content}</td>
-              <td>${formatTime(comment.createTime)}</td>
-              <td>${comment.userId === currentUser.id ? `<button class="danger" onclick="deleteComment(${comment.id})">删除</button>` : ''}</td>
-            `;
-                    tbody.appendChild(tr);
-                });
-            } else {
-                tbody.innerHTML = '<tr><td colspan="5" align="center">暂无评论</td></tr>';
-            }
-        } catch (err) {
-            log(`加载评论失败：${err.message}`);
-            alert('加载评论失败：' + err.message);
-        }
-    }
-
-    // 发布评论
-    async function publishComment() {
-        if (!currentPostId) {
-            alert('请先选择帖子！');
-            return;
-        }
-        const content = document.getElementById('commentContent').value.trim();
-        if (!content) {
-            alert('评论内容不能为空！');
-            return;
-        }
-        try {
-            log(`发布评论：帖子${currentPostId}，内容=${content}`);
-            const res = await fetch(`${BASE_URL}/comment`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `postId=${currentPostId}&content=${content}`
-            });
-            const data = await res.json();
-            log(`发布结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-            if (data.code === 200) {
-                document.getElementById('commentContent').value = '';
-                loadCommentList(currentPostId);
-            }
-        } catch (err) {
-            log(`发布评论失败：${err.message}`);
-            alert('发布评论失败：' + err.message);
-        }
-    }
-
-    // 删除自己的评论
-    async function deleteComment(commentId) {
-        if (!confirm(`确定删除评论ID=${commentId}吗？`)) return;
-        try {
-            log(`删除评论：ID=${commentId}`);
-            const res = await fetch(`${BASE_URL}/comment/${commentId}`, {
-                method: 'DELETE',
-                credentials: 'include'
-            });
-            const data = await res.json();
-            log(`删除结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-            if (data.code === 200) {
-                loadCommentList(currentPostId);
-            }
-        } catch (err) {
-            log(`删除评论失败：${err.message}`);
-            alert('删除评论失败：' + err.message);
-        }
-    }
-
-    // ========== 管理员功能 ==========
-    // 加载待审核用户
-    async function loadWaitAuditUsers() {
-        try {
-            log('加载待审核用户...');
-            const res = await fetch(`${BASE_URL}/admin/waitAuditUserList`, {
-                method: 'GET',
-                credentials: 'include'
-            });
-            const data = await res.json();
-            log(`加载到待审核用户数量：${data.data?.length || 0}`);
-
-            const tbody = document.querySelector('#auditUserTable tbody');
-            tbody.innerHTML = '';
-            if (data.data && data.data.length > 0) {
-                data.data.forEach(user => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-              <td>${user.id}</td>
-              <td>${user.username}</td>
-              <td>${formatTime(user.createTime)}</td>
-              <td>
-                <button onclick="auditUser('${user.username}', 1)">通过</button>
-                <button class="danger" onclick="auditUser('${user.username}', 2)">封禁</button>
-              </td>
-            `;
-                    tbody.appendChild(tr);
-                });
-            } else {
-                tbody.innerHTML = '<tr><td colspan="4" align="center">暂无待审核用户</td></tr>';
-            }
-        } catch (err) {
-            log(`加载待审核用户失败：${err.message}`);
-            alert('加载待审核用户失败：' + err.message);
-        }
-    }
-
-    // 审核用户
-    async function auditUser(username, status) {
-        const action = status === 1 ? '通过' : '封禁';
-        if (!confirm(`确定${action}用户【${username}】吗？`)) return;
-        try {
-            log(`审核用户：${username}，状态=${status}`);
-            const res = await fetch(`${BASE_URL}/admin/auditUser`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userName: username, status: status })
-            });
-            const data = await res.json();
-            log(`审核结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-            if (data.code === 200) {
-                loadWaitAuditUsers();
-            }
-        } catch (err) {
-            log(`审核用户失败：${err.message}`);
-            alert('审核用户失败：' + err.message);
-        }
-    }
-
-    // 管理员删除任意帖子
-    async function adminDeletePost() {
-        const postId = document.getElementById('adminPostId').value.trim();
-        if (!postId) {
-            alert('帖子ID不能为空！');
-            return;
-        }
-        if (!confirm(`确定强制删除帖子ID=${postId}吗？`)) return;
-        try {
-            log(`管理员删除帖子：ID=${postId}`);
-            const res = await fetch(`${BASE_URL}/admin/post/${postId}`, {
-                method: 'DELETE',
-                credentials: 'include'
-            });
-            const data = await res.json();
-            log(`删除结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-            if (data.code === 200) {
-                loadPostList();
-            }
-        } catch (err) {
-            log(`删除帖子失败：${err.message}`);
-            alert('删除帖子失败：' + err.message);
-        }
-    }
-
-    // 管理员删除任意评论
-    async function adminDeleteComment() {
-        const commentId = document.getElementById('adminCommentId').value.trim();
-        if (!commentId) {
-            alert('评论ID不能为空！');
-            return;
-        }
-        if (!confirm(`确定强制删除评论ID=${commentId}吗？`)) return;
-        try {
-            log(`管理员删除评论：ID=${commentId}`);
-            const res = await fetch(`${BASE_URL}/admin/comment/${commentId}`, {
-                method: 'DELETE',
-                credentials: 'include'
-            });
-            const data = await res.json();
-            log(`删除结果：${JSON.stringify(data)}`);
-            alert(data.msg);
-            if (data.code === 200 && currentPostId) {
-                loadCommentList(currentPostId);
-            }
-        } catch (err) {
-            log(`删除评论失败：${err.message}`);
-            alert('删除评论失败：' + err.message);
-        }
-    }
-</script>
-</body>
+    <script src="https://unpkg.com/vue@3.4.0/dist/vue.global.prod.js"></script>
+    <script src="js/app.js"></script>
+  </body>
 </html>

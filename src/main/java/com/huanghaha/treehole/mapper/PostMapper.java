@@ -19,4 +19,12 @@ public interface PostMapper {
     Post findById(Long id);
 
     void deleteById(Long id);
+
+    void incrementLikeCount(Long id);
+
+    void decrementLikeCount(Long id);
+
+    void incrementFavoriteCount(Long id);
+
+    void decrementFavoriteCount(Long id);
 }

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.huanghaha.treehole.mapper.PostLikeMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post_like (user_id, post_id, is_deleted, create_time)
+        VALUES (#{userId}, #{postId}, 0, #{createTime})
+    </insert>
+
+    <select id="findByUserIdAndPostId" resultType="com.huanghaha.treehole.entity.PostLike">
+        SELECT * FROM post_like
+        WHERE user_id = #{userId} AND post_id = #{postId} AND is_deleted = 0
+    </select>
+
+    <update id="deleteById">
+        UPDATE post_like SET is_deleted = 1 WHERE id = #{id}
+    </update>
+
+</mapper>

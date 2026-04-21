@@ -10,5 +10,8 @@ public class Post {
     private Long id;
     private Long userId;
     private String content;
+    private Integer likeCount;
+    private Integer favoriteCount;
+    private Integer isDeleted;
     private LocalDateTime createTime;
 }
