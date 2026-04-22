@@ -21,22 +21,28 @@ src/main/java/com/huanghaha/treehole/
 ├── common/
 │   ├── Result.java              # 统一返回结果 (code/msg/data)
 │   └── ForbiddenWordUtil.java   # 敏感词过滤工具（抛 BusinessException）
+├── ai/
+│   ├── AiReply.java             # AI回复实体
+│   └── AiPrompt.java            # 提示词枚举（5种性格：安慰/吐槽/理性/鼓励/综合）
 ├── config/
 │   ├── PasswordConfig.java      # BCrypt PasswordEncoder Bean
 │   ├── RedisConfig.java         # RedisTemplate 配置 (JDK序列化)
 │   ├── RedisSessionConfig.java  # Spring Session + Cookie 配置
+│   ├── AiConfig.java           # RestTemplate Bean（AI调用）
 │   └── WebConfig.java           # 拦截器注册 + 路径规则
 ├── controller/
 │   ├── UserController.java      # 注册/登录/用户信息/退出
 │   ├── PostController.java      # 发帖/列表/分页/删除/点赞/收藏
 │   ├── CommentController.java   # 评论/按帖子查评论/删除
-│   └── AdminController.java     # 用户审核/删帖/删评论（权限校验抽为 getAdminFromSession）
+│   ├── AdminController.java     # 用户审核/删帖/删评论（权限校验抽为 getAdminFromSession）
+│   └── AiController.java       # AI回复生成/查询
 ├── entity/
 │   ├── User.java                # id/username/password/status/isDeleted/createTime
 │   ├── Post.java                # id/userId/username/content/likeCount/favoriteCount/isDeleted/createTime
 │   ├── PostLike.java            # id/userId/postId/isDeleted/createTime
 │   ├── PostFavorite.java        # id/userId/postId/isDeleted/createTime
-│   └── Comment.java             # id/userId/username/content/postId/isDeleted/createTime
+│   ├── Comment.java             # id/userId/username/content/postId/isDeleted/createTime
+│   └── AiReply.java            # id/postId/content/promptType/isDeleted/createTime
 ├── exception/
 │   ├── BusinessException.java   # 自定义业务异常（code + message）
 │   └── GlobalExceptionHandler.java  # 全局异常处理（区分业务/系统异常）
@@ -47,14 +53,16 @@ src/main/java/com/huanghaha/treehole/
 │   ├── PostMapper.java
 │   ├── PostLikeMapper.java
 │   ├── PostFavoriteMapper.java
-│   └── CommentMapper.java
-├── service/
+│   ├── CommentMapper.java
+│   └── AiReplyMapper.java
+└── service/
 │   ├── UserService.java / UserServiceImpl.java
 │   ├── PostService.java / PostServiceImpl.java
 │   ├── LikeService.java / LikeServiceImpl.java
 │   ├── FavoriteService.java / FavoriteServiceImpl.java
 │   ├── CommentService.java / CommentServiceImpl.java
-│   └── AdminService.java / AdminServiceImpl.java
+│   ├── AdminService.java / AdminServiceImpl.java
+│   └── AiService.java / AiServiceImpl.java
 └── TreeholeApplication.java     # 启动类
 
 src/main/resources/
@@ -63,7 +71,8 @@ src/main/resources/
 │   ├── PostMapper.xml
 │   ├── PostLikeMapper.xml
 │   ├── PostFavoriteMapper.xml
-│   └── CommentMapper.xml
+│   ├── CommentMapper.xml
+│   └── AiReplyMapper.xml
 ├── static/
 │   ├── index.html               # 前端单页应用
 │   ├── css/style.css            # 样式文件
@@ -75,7 +84,7 @@ src/main/resources/
 
 - 数据库名：`treehole`，字符集 `utf8mb4`
 - 初始化脚本：`treehole.sql`
-- 五张表：`user`、`post`、`comment`、`post_like`、`post_favorite`
+- 六张表：`user`、`post`、`comment`、`post_like`、`post_favorite`、`ai_reply`
 - User.status: 0=待审核, 1=正常, 2=封禁, 99=管理员
 - 所有表均使用逻辑删除：`is_deleted`（0=未删除, 1=已删除）
 - 删除操作为 UPDATE is_deleted=1，查询均带 WHERE is_deleted=0 条件
@@ -84,28 +93,31 @@ src/main/resources/
 
 ## API 概览
 
-| 模块 | 方法   | 路径                       | 需登录 | 说明                      |
-| ---- | ------ | -------------------------- | ------ | ------------------------- |
-| 用户 | POST   | /user/register             | 否     | 注册（默认待审核）        |
-| 用户 | POST   | /user/login                | 否     | 登录                      |
-| 用户 | GET    | /user/me                   | 否     | 获取当前用户信息          |
-| 用户 | GET    | /user/logout               | 否     | 退出登录                  |
-| 帖子 | POST   | /post/publish              | 是     | 发布帖子（≤500字）        |
-| 帖子 | GET    | /post/list                 | 否     | 全量帖子列表              |
-| 帖子 | GET    | /post/page                 | 否     | 分页帖子（Redis缓存5min） |
-| 帖子 | DELETE | /post/delete               | 是     | 删除自己的帖子            |
-| 帖子 | POST   | /post/like/{postId}        | 是     | 点赞/取消点赞             |
-| 帖子 | GET    | /post/liked/{postId}       | 是     | 查询当前用户是否点赞      |
-| 帖子 | POST   | /post/favorite/{postId}    | 是     | 收藏/取消收藏             |
-| 帖子 | GET    | /post/favorited/{postId}   | 是     | 查询当前用户是否收藏      |
-| 帖子 | GET    | /post/favorites            | 是     | 获取当前用户收藏列表      |
-| 评论 | POST   | /comment                   | 是     | 发布评论（≤200字）        |
-| 评论 | GET    | /comment/post/{postId}     | 否     | 按帖子查评论              |
-| 评论 | DELETE | /comment/{id}              | 是     | 删除自己的评论            |
-| 管理 | GET    | /admin/waitAuditUserList   | 是     | 待审核用户列表            |
-| 管理 | POST   | /admin/auditUser           | 是     | 审核用户（通过/封禁）     |
-| 管理 | DELETE | /admin/post/{postId}       | 是     | 管理员删帖                |
-| 管理 | DELETE | /admin/comment/{commentId} | 是     | 管理员删评论              |
+| 模块 | 方法   | 路径                       | 需登录 | 说明                       |
+| ---- | ------ | -------------------------- | ------ | -------------------------- |
+| 用户 | POST   | /user/register             | 否     | 注册（默认待审核）         |
+| 用户 | POST   | /user/login                | 否     | 登录                       |
+| 用户 | GET    | /user/me                   | 否     | 获取当前用户信息           |
+| 用户 | GET    | /user/logout               | 否     | 退出登录                   |
+| 帖子 | POST   | /post/publish              | 是     | 发布帖子（≤500字）         |
+| 帖子 | GET    | /post/list                 | 否     | 全量帖子列表               |
+| 帖子 | GET    | /post/page                 | 否     | 分页帖子（Redis缓存5min）  |
+| 帖子 | DELETE | /post/delete               | 是     | 删除自己的帖子             |
+| 帖子 | POST   | /post/like/{postId}        | 是     | 点赞/取消点赞              |
+| 帖子 | GET    | /post/liked/{postId}       | 是     | 查询当前用户是否点赞       |
+| 帖子 | POST   | /post/favorite/{postId}    | 是     | 收藏/取消收藏              |
+| 帖子 | GET    | /post/favorited/{postId}   | 是     | 查询当前用户是否收藏       |
+| 帖子 | GET    | /post/favorites            | 是     | 获取当前用户收藏列表       |
+| 评论 | POST   | /comment                   | 是     | 发布评论（≤200字）         |
+| 评论 | GET    | /comment/post/{postId}     | 否     | 按帖子查评论               |
+| 评论 | DELETE | /comment/{id}              | 是     | 删除自己的评论             |
+| 管理 | GET    | /admin/waitAuditUserList   | 是     | 待审核用户列表             |
+| 管理 | POST   | /admin/auditUser           | 是     | 审核用户（通过/封禁）      |
+| 管理 | DELETE | /admin/post/{postId}       | 是     | 管理员删帖                 |
+| 管理 | DELETE | /admin/comment/{commentId} | 是     | 管理员删评论               |
+| AI   | POST   | /ai/reply/{postId}         | 是     | 生成AI回复（自动分析情绪） |
+| AI   | GET    | /ai/reply/{postId}         | 是     | 获取帖子AI回复列表         |
+| AI   | GET    | /ai/prompt-types           | 否     | 获取可用AI性格列表         |
 
 ## 关键业务规则
 
@@ -126,6 +138,7 @@ src/main/resources/
 - `/post/like/*`, `/post/liked/*`, `/post/favorite/*`, `/post/favorited/*`, `/post/favorites`
 - `/comment`, `/comment/*`
 - `/admin/*`
+- `/ai/reply`
 
 放行（无需登录）：
 
@@ -138,6 +151,7 @@ src/main/resources/
 - Redis：localhost:6379
 - MySQL：localhost:3306/treehole
 - Cookie 名称：`TREEHOLE_SESSION`，SameSite=Lax
+- AI：DeepSeek API（`treehole.ai` 配置项）
 - MyBatis 开启驼峰映射和 null 设置
 
 ## 编码规范
@@ -166,6 +180,7 @@ src/main/resources/
 10. ✅ 前端 UI 改版：发帖入口改为右上角 + 按钮、卡片式帖子布局、评论折叠展开
 11. ✅ 修复 PostLikeMapper/PostFavoriteMapper toggle SQL 中 createTime 参数缺失问题（MyBatis Parameter not found）
 12. ✅ 修复 AdminController auditUser 接口字段名不匹配问题（userName → username，@RequestBody → @ModelAttribute）
+13. ✅ AI回复助手功能：自动分析帖子情绪匹配5种性格提示词（安慰/吐槽/理性/鼓励/综合），调用DeepSeek API生成回复
 
 ## 待优化方向（简历项目增强）
 

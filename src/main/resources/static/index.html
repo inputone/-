@@ -7,11 +7,13 @@
     <link rel="stylesheet" href="css/style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div id="app">
-
       <div v-if="state.view === 'login'" class="login-view">
         <div class="header">
           <h1>🌳 树洞</h1>
@@ -19,9 +21,7 @@
         </div>
 
         <div class="card">
-          <div class="card-title">
-            <span class="icon">🔐</span> 登录
-          </div>
+          <div class="card-title"><span class="icon">🔐</span> 登录</div>
           <div class="form-group">
             <label>用户名</label>
             <input
@@ -44,14 +44,14 @@
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" @click="login">登录</button>
-            <button class="btn btn-ghost" @click="switchToRegister">注册新用户</button>
+            <button class="btn btn-ghost" @click="switchToRegister">
+              注册新用户
+            </button>
           </div>
         </div>
 
         <div v-if="state.showRegister" class="card" style="margin-top: 20px">
-          <div class="card-title">
-            <span class="icon">✨</span> 注册
-          </div>
+          <div class="card-title"><span class="icon">✨</span> 注册</div>
           <div class="form-group">
             <label>用户名</label>
             <input
@@ -73,7 +73,9 @@
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" @click="register">注册</button>
-            <button class="btn btn-ghost" @click="switchToLogin">返回登录</button>
+            <button class="btn btn-ghost" @click="switchToLogin">
+              返回登录
+            </button>
           </div>
         </div>
       </div>
@@ -84,7 +86,13 @@
             <h1 class="logo">🌳 树洞</h1>
           </div>
           <div class="main-header-right">
-            <button class="fab-btn" @click="togglePublishModal" title="发布帖子">+</button>
+            <button
+              class="fab-btn"
+              @click="togglePublishModal"
+              title="发布帖子"
+            >
+              +
+            </button>
             <button class="theme-toggle" @click="toggleTheme">
               {{ state.theme === 'dark' ? '☀️' : '🌙' }}
             </button>
@@ -94,9 +102,13 @@
             <div v-if="state.showUserMenu" class="user-menu">
               <div class="user-menu-info">
                 <div class="user-menu-name">{{ state.user.username }}</div>
-                <div class="user-menu-role" v-if="state.user.status === 99">管理员</div>
+                <div class="user-menu-role" v-if="state.user.status === 99">
+                  管理员
+                </div>
               </div>
-              <button class="btn btn-ghost btn-sm" @click="logout">退出登录</button>
+              <button class="btn btn-ghost btn-sm" @click="logout">
+                退出登录
+              </button>
             </div>
           </div>
         </div>
@@ -138,19 +150,20 @@
           </div>
 
           <div v-else class="post-feed">
-            <div
-              class="post-card"
-              v-for="post in state.posts"
-              :key="post.id"
-            >
+            <div class="post-card" v-for="post in state.posts" :key="post.id">
               <div class="post-card-header">
                 <div class="post-author">
                   <div class="post-author-avatar">
-                    {{ post.username ? post.username.charAt(0).toUpperCase() : '?' }}
+                    {{ post.username ? post.username.charAt(0).toUpperCase() :
+                    '?' }}
                   </div>
                   <div class="post-author-info">
-                    <div class="post-author-name">{{ post.username || '匿名用户' }}</div>
-                    <div class="post-author-time">{{ formatTime(post.createTime) }}</div>
+                    <div class="post-author-name">
+                      {{ post.username || '匿名用户' }}
+                    </div>
+                    <div class="post-author-time">
+                      {{ formatTime(post.createTime) }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -182,6 +195,14 @@
                   💬 <span>{{ post.commentCount || 0 }}</span>
                 </button>
                 <button
+                  class="action-btn ai-btn"
+                  @click="generateAiReply(post.id)"
+                  :disabled="state.aiLoading[post.id]"
+                >
+                  <span v-if="state.aiLoading[post.id]">🤖...</span>
+                  <span v-else>🤖 AI</span>
+                </button>
+                <button
                   v-if="canDeletePost(post)"
                   class="action-btn delete-btn"
                   @click="confirmDeletePost(post)"
@@ -190,7 +211,10 @@
                 </button>
               </div>
 
-              <div v-if="state.expandedPosts[post.id]" class="post-comments-section">
+              <div
+                v-if="state.expandedPosts[post.id]"
+                class="post-comments-section"
+              >
                 <div class="comment-input-row">
                   <input
                     type="text"
@@ -199,11 +223,25 @@
                     placeholder="写下你的评论..."
                     @keyup.enter="publishComment(post.id)"
                   />
-                  <button class="btn btn-primary btn-sm" @click="publishComment(post.id)">发送</button>
+                  <button
+                    class="btn btn-primary btn-sm"
+                    @click="publishComment(post.id)"
+                  >
+                    发送
+                  </button>
                 </div>
-                <div v-if="state.postComments[post.id] && state.postComments[post.id].length > 0" class="comment-list">
-                  <div class="comment-item" v-for="comment in state.postComments[post.id]" :key="comment.id">
-                    <div class="comment-author">{{ comment.username || '匿名' }}</div>
+                <div
+                  v-if="state.postComments[post.id] && state.postComments[post.id].length > 0"
+                  class="comment-list"
+                >
+                  <div
+                    class="comment-item"
+                    v-for="comment in state.postComments[post.id]"
+                    :key="comment.id"
+                  >
+                    <div class="comment-author">
+                      {{ comment.username || '匿名' }}
+                    </div>
                     <div class="comment-text">{{ comment.content }}</div>
                     <div class="comment-meta">
                       <span>{{ formatTime(comment.createTime) }}</span>
@@ -211,15 +249,41 @@
                         v-if="canDeleteComment(comment)"
                         class="comment-delete-btn"
                         @click="confirmDeleteComment(comment)"
-                      >删除</button>
+                      >
+                        删除
+                      </button>
                     </div>
                   </div>
                 </div>
-                <div v-else-if="!state.commentLoading[post.id]" class="comment-empty">
+                <div
+                  v-else-if="!state.commentLoading[post.id]"
+                  class="comment-empty"
+                >
                   暂无评论，快来评论吧
                 </div>
-                <div v-if="state.commentLoading[post.id]" class="loading" style="padding: 20px">
+                <div
+                  v-if="state.commentLoading[post.id]"
+                  class="loading"
+                  style="padding: 20px"
+                >
                   <div class="spinner"></div>
+                </div>
+
+                <div
+                  v-if="state.aiReplies[post.id] && state.aiReplies[post.id].length > 0"
+                  class="ai-reply-list"
+                >
+                  <div class="ai-reply-header">🤖 AI 回复</div>
+                  <div
+                    class="ai-reply-item"
+                    v-for="reply in state.aiReplies[post.id]"
+                    :key="reply.id"
+                  >
+                    <div class="ai-reply-content">{{ reply.content }}</div>
+                    <div class="ai-reply-meta">
+                      {{ formatTime(reply.createTime) }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -274,11 +338,16 @@
               <div class="post-card-header">
                 <div class="post-author">
                   <div class="post-author-avatar">
-                    {{ post.username ? post.username.charAt(0).toUpperCase() : '?' }}
+                    {{ post.username ? post.username.charAt(0).toUpperCase() :
+                    '?' }}
                   </div>
                   <div class="post-author-info">
-                    <div class="post-author-name">{{ post.username || '匿名用户' }}</div>
-                    <div class="post-author-time">{{ formatTime(post.createTime) }}</div>
+                    <div class="post-author-name">
+                      {{ post.username || '匿名用户' }}
+                    </div>
+                    <div class="post-author-time">
+                      {{ formatTime(post.createTime) }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -309,7 +378,10 @@
                 </button>
               </div>
 
-              <div v-if="state.expandedPosts[post.id]" class="post-comments-section">
+              <div
+                v-if="state.expandedPosts[post.id]"
+                class="post-comments-section"
+              >
                 <div class="comment-input-row">
                   <input
                     type="text"
@@ -318,11 +390,25 @@
                     placeholder="写下你的评论..."
                     @keyup.enter="publishComment(post.id)"
                   />
-                  <button class="btn btn-primary btn-sm" @click="publishComment(post.id)">发送</button>
+                  <button
+                    class="btn btn-primary btn-sm"
+                    @click="publishComment(post.id)"
+                  >
+                    发送
+                  </button>
                 </div>
-                <div v-if="state.postComments[post.id] && state.postComments[post.id].length > 0" class="comment-list">
-                  <div class="comment-item" v-for="comment in state.postComments[post.id]" :key="comment.id">
-                    <div class="comment-author">{{ comment.username || '匿名' }}</div>
+                <div
+                  v-if="state.postComments[post.id] && state.postComments[post.id].length > 0"
+                  class="comment-list"
+                >
+                  <div
+                    class="comment-item"
+                    v-for="comment in state.postComments[post.id]"
+                    :key="comment.id"
+                  >
+                    <div class="comment-author">
+                      {{ comment.username || '匿名' }}
+                    </div>
                     <div class="comment-text">{{ comment.content }}</div>
                     <div class="comment-meta">
                       <span>{{ formatTime(comment.createTime) }}</span>
@@ -330,15 +416,41 @@
                         v-if="canDeleteComment(comment)"
                         class="comment-delete-btn"
                         @click="confirmDeleteComment(comment)"
-                      >删除</button>
+                      >
+                        删除
+                      </button>
                     </div>
                   </div>
                 </div>
-                <div v-else-if="!state.commentLoading[post.id]" class="comment-empty">
+                <div
+                  v-else-if="!state.commentLoading[post.id]"
+                  class="comment-empty"
+                >
                   暂无评论，快来评论吧
                 </div>
-                <div v-if="state.commentLoading[post.id]" class="loading" style="padding: 20px">
+                <div
+                  v-if="state.commentLoading[post.id]"
+                  class="loading"
+                  style="padding: 20px"
+                >
                   <div class="spinner"></div>
+                </div>
+
+                <div
+                  v-if="state.aiReplies[post.id] && state.aiReplies[post.id].length > 0"
+                  class="ai-reply-list"
+                >
+                  <div class="ai-reply-header">🤖 AI 回复</div>
+                  <div
+                    class="ai-reply-item"
+                    v-for="reply in state.aiReplies[post.id]"
+                    :key="reply.id"
+                  >
+                    <div class="ai-reply-content">{{ reply.content }}</div>
+                    <div class="ai-reply-meta">
+                      {{ formatTime(reply.createTime) }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -351,7 +463,10 @@
             <p>加载中...</p>
           </div>
 
-          <div v-else-if="state.waitAuditUsers.length === 0" class="empty-state">
+          <div
+            v-else-if="state.waitAuditUsers.length === 0"
+            class="empty-state"
+          >
             <div class="icon">✅</div>
             <p>暂无待审核用户</p>
           </div>
@@ -361,14 +476,30 @@
               <div class="card-title">
                 <span class="icon">👥</span> 待审核用户
               </div>
-              <div class="audit-item" v-for="user in state.waitAuditUsers" :key="user.id">
+              <div
+                class="audit-item"
+                v-for="user in state.waitAuditUsers"
+                :key="user.id"
+              >
                 <div class="audit-info">
                   <div class="audit-name">{{ user.username }}</div>
-                  <div class="audit-time">{{ formatTime(user.createTime) }}</div>
+                  <div class="audit-time">
+                    {{ formatTime(user.createTime) }}
+                  </div>
                 </div>
                 <div class="audit-actions">
-                  <button class="btn btn-success btn-sm" @click="auditUser(user.username, 1)">通过</button>
-                  <button class="btn btn-danger btn-sm" @click="auditUser(user.username, 2)">封禁</button>
+                  <button
+                    class="btn btn-success btn-sm"
+                    @click="auditUser(user.username, 1)"
+                  >
+                    通过
+                  </button>
+                  <button
+                    class="btn btn-danger btn-sm"
+                    @click="auditUser(user.username, 2)"
+                  >
+                    封禁
+                  </button>
                 </div>
               </div>
             </div>
@@ -393,10 +524,14 @@
               placeholder="匿名分享你的心事...（最多500字）"
               maxlength="500"
             ></textarea>
-            <div class="textarea-counter">{{ state.postContent.length }}/500</div>
+            <div class="textarea-counter">
+              {{ state.postContent.length }}/500
+            </div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-ghost" @click="closePublishModal">取消</button>
+            <button class="btn btn-ghost" @click="closePublishModal">
+              取消
+            </button>
             <button class="btn btn-primary" @click="publishPost">发布</button>
           </div>
         </div>
@@ -412,15 +547,19 @@
           <div class="modal-text">{{ state.modal.text }}</div>
           <div class="modal-actions">
             <button class="btn btn-ghost" @click="closeModal">取消</button>
-            <button class="btn btn-danger" @click="confirmAction">{{ state.modal.actionText }}</button>
+            <button class="btn btn-danger" @click="confirmAction">
+              {{ state.modal.actionText }}
+            </button>
           </div>
         </div>
       </div>
 
-      <div class="toast" :class="['toast-' + state.toast.type, { show: state.toast.show }]">
+      <div
+        class="toast"
+        :class="['toast-' + state.toast.type, { show: state.toast.show }]"
+      >
         {{ state.toast.msg }}
       </div>
-
     </div>
 
     <script src="https://unpkg.com/vue@3.4.0/dist/vue.global.prod.js"></script>

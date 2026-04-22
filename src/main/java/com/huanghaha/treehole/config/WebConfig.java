@@ -30,7 +30,8 @@ public class WebConfig implements WebMvcConfigurer {
                                                 "/post/favorites",
                                                 "/comment",
                                                 "/comment/*",
-                                                "/admin/*")
+                                                "/admin/*",
+                                                "/ai/reply")
                                 // 无需登录即可访问的路径
                                 .excludePathPatterns(
                                                 "/user/login",

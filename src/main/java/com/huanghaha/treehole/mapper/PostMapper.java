@@ -42,4 +42,10 @@ public interface PostMapper {
 
     /** 收藏数 -1（GREATEST(count-1, 0) 防止负数） */
     void decrementFavoriteCount(Long id);
+
+    /** 评论数 +1 */
+    void incrementCommentCount(Long id);
+
+    /** 评论数 -1（GREATEST(count-1, 0) 防止负数） */
+    void decrementCommentCount(Long id);
 }

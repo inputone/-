@@ -4,6 +4,7 @@ import com.huanghaha.treehole.common.ForbiddenWordUtil;
 import com.huanghaha.treehole.entity.Comment;
 import com.huanghaha.treehole.exception.BusinessException;
 import com.huanghaha.treehole.mapper.CommentMapper;
+import com.huanghaha.treehole.mapper.PostMapper;
 import com.huanghaha.treehole.service.CommentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,9 @@ public class CommentServiceImpl implements CommentService {
 
     @Resource
     private CommentMapper commentMapper;
+
+    @Resource
+    private PostMapper postMapper;
 
     @Resource
     private ForbiddenWordUtil forbiddenWordUtil;
@@ -55,6 +59,7 @@ public class CommentServiceImpl implements CommentService {
 
         log.info("发布评论：用户ID={}, 帖子ID={}", userId, postId);
         commentMapper.insert(comment);
+        postMapper.incrementCommentCount(postId);
     }
 
     @Override
@@ -84,5 +89,6 @@ public class CommentServiceImpl implements CommentService {
 
         log.info("删除评论：评论ID={}, 用户ID={}", commentId, userId);
         commentMapper.deleteById(commentId);
+        postMapper.decrementCommentCount(comment.getPostId());
     }
 }

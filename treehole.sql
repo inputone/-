@@ -32,6 +32,7 @@ CREATE TABLE `post` (
   `content` TEXT NOT NULL COMMENT '帖子内容',
   `like_count` INT DEFAULT 0 COMMENT '点赞数',
   `favorite_count` INT DEFAULT 0 COMMENT '收藏数',
+  `comment_count` INT DEFAULT 0 COMMENT '评论数',
   `is_deleted` INT DEFAULT 0 COMMENT '删除标记: 0-未删除, 1-已删除',
   `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   KEY `idx_user_id` (`user_id`),
@@ -108,3 +109,19 @@ INSERT INTO `comment` (`content`, `user_id`, `post_id`, `is_deleted`, `create_ti
 
 ALTER TABLE post ADD COLUMN like_count INT DEFAULT 0 COMMENT '点赞数' AFTER content;
 ALTER TABLE post ADD COLUMN favorite_count INT DEFAULT 0 COMMENT '收藏数' AFTER like_count;
+ALTER TABLE post ADD COLUMN comment_count INT DEFAULT 0 COMMENT '评论数' AFTER favorite_count;
+
+-- =====================================================
+-- AI回复表
+-- =====================================================
+DROP TABLE IF EXISTS `ai_reply`;
+CREATE TABLE `ai_reply` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `post_id` BIGINT NOT NULL COMMENT '所属帖子ID',
+  `content` TEXT NOT NULL COMMENT 'AI回复内容',
+  `prompt_type` VARCHAR(20) NOT NULL COMMENT '使用的提示词类型',
+  `is_deleted` INT DEFAULT 0 COMMENT '删除标记: 0-未删除, 1-已删除',
+  `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  KEY `idx_post_id` (`post_id`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI回复表';

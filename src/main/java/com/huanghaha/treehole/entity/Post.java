@@ -19,6 +19,8 @@ public class Post {
     private Integer likeCount;
     /** 收藏数（冗余字段，由 post_favorite 表聚合维护） */
     private Integer favoriteCount;
+    /** 评论数（冗余字段，由 comment 表聚合维护） */
+    private Integer commentCount;
     /** 逻辑删除标识：0-未删除，1-已删除 */
     private Integer isDeleted;
     private LocalDateTime createTime;

@@ -27,6 +27,8 @@ const state = reactive({
   postComments: {},
   commentInputs: {},
   commentLoading: {},
+  aiReplies: {},
+  aiLoading: {},
   showUserMenu: false,
   publishModal: {
     show: false,
@@ -311,6 +313,37 @@ async function loadFavorites() {
   state.loading = false;
 }
 
+async function generateAiReply(postId) {
+  if (!debounce(`ai_${postId}`)) {
+    showToast("操作太频繁，请稍后再试", "warning");
+    return;
+  }
+  state.aiLoading[postId] = true;
+  try {
+    const data = await api("POST", `/ai/reply/${postId}`);
+    if (data.code === 200) {
+      if (!state.aiReplies[postId]) {
+        state.aiReplies[postId] = [];
+      }
+      state.aiReplies[postId].unshift(data.data);
+      showToast("AI回复已生成", "success");
+    }
+  } catch {
+    showToast("AI回复生成失败", "error");
+  }
+  state.aiLoading[postId] = false;
+}
+
+async function loadAiReplies(postId) {
+  if (state.aiReplies[postId]) return;
+  try {
+    const data = await api("GET", `/ai/reply/${postId}`);
+    if (data.code === 200) {
+      state.aiReplies[postId] = data.data;
+    }
+  } catch {}
+}
+
 async function publishPost() {
   if (!state.postContent) {
     showToast("帖子内容不能为空", "warning");
@@ -365,6 +398,9 @@ async function toggleComments(post) {
     state.expandedPosts[postId] = true;
     if (!state.postComments[postId]) {
       loadComments(postId);
+    }
+    if (!state.aiReplies[postId]) {
+      loadAiReplies(postId);
     }
   }
 }
@@ -576,6 +612,8 @@ const app = createApp({
       confirmDeleteComment,
       closeModal,
       confirmAction,
+      generateAiReply,
+      loadAiReplies,
     };
   },
 });
