@@ -22,7 +22,7 @@ import java.util.List;
 public class CommentServiceImpl implements CommentService {
 
     /** 评论内容最大长度 */
-    private static final int MAX_CONTENT_LENGTH = 300;
+    private static final int MAX_CONTENT_LENGTH = 200;
 
     @Resource
     private CommentMapper commentMapper;

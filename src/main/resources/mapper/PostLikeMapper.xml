@@ -5,18 +5,20 @@
 
 <mapper namespace="com.huanghaha.treehole.mapper.PostLikeMapper">
 
-    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    <insert id="toggleLike">
         INSERT INTO post_like (user_id, post_id, is_deleted, create_time)
-        VALUES (#{userId}, #{postId}, 0, #{createTime})
+        VALUES (#{userId}, #{postId}, 0, NOW())
+        ON DUPLICATE KEY UPDATE is_deleted = IF(is_deleted = 0, 1, 0)
     </insert>
 
-    <select id="findByUserIdAndPostId" resultType="com.huanghaha.treehole.entity.PostLike">
-        SELECT * FROM post_like
+    <select id="findByUserIdAndPostId" resultType="java.lang.Long">
+        SELECT id FROM post_like
         WHERE user_id = #{userId} AND post_id = #{postId} AND is_deleted = 0
     </select>
 
-    <update id="deleteById">
-        UPDATE post_like SET is_deleted = 1 WHERE id = #{id}
-    </update>
+    <select id="countByPostId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM post_like
+        WHERE post_id = #{postId} AND is_deleted = 0
+    </select>
 
 </mapper>

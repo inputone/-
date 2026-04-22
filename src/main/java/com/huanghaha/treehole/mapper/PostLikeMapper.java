@@ -1,6 +1,5 @@
 package com.huanghaha.treehole.mapper;
 
-import com.huanghaha.treehole.entity.PostLike;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -11,12 +10,9 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface PostLikeMapper {
 
-    /** 新增点赞记录 */
-    void insert(PostLike postLike);
+    void toggleLike(Long userId, Long postId);
 
-    /** 根据用户ID和帖子ID查询点赞记录（用于判断是否已点赞） */
-    PostLike findByUserIdAndPostId(Long userId, Long postId);
+    Long findByUserIdAndPostId(Long userId, Long postId);
 
-    /** 逻辑删除点赞记录 */
-    void deleteById(Long id);
+    Integer countByPostId(Long postId);
 }

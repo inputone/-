@@ -1,4 +1,5 @@
 package com.huanghaha.treehole.service;
+
 import com.huanghaha.treehole.entity.Comment;
 import java.util.List;
 
@@ -9,7 +10,7 @@ import java.util.List;
 public interface CommentService {
 
     /**
-     * 发布评论，内容上限 300 字
+     * 发布评论，内容上限 500 字
      *
      * @param userId  评论者ID
      * @param postId  帖子ID

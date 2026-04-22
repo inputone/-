@@ -5,55 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>树洞 - 匿名社区</title>
     <link rel="stylesheet" href="css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="app">
-      <div class="header">
-        <h1>🌳 树洞</h1>
-        <p>说出你的心事，这里只有倾听</p>
-      </div>
 
-      <div v-if="state.view === 'login'" class="card">
-        <div class="card-title"><span class="icon">🔐</span> 登录 / 注册</div>
-        <div class="form-group">
-          <label>用户名</label>
-          <input
-            type="text"
-            class="input"
-            v-model="state.loginUsername"
-            placeholder="输入用户名"
-          />
+      <div v-if="state.view === 'login'" class="login-view">
+        <div class="header">
+          <h1>🌳 树洞</h1>
+          <p>说出你的心事，这里只有倾听</p>
         </div>
-        <div class="form-group">
-          <label>密码</label>
-          <input
-            type="password"
-            class="input"
-            v-model="state.loginPassword"
-            placeholder="输入密码（至少6位）"
-            @keyup.enter="login"
-          />
+
+        <div class="card">
+          <div class="card-title">
+            <span class="icon">🔐</span> 登录
+          </div>
+          <div class="form-group">
+            <label>用户名</label>
+            <input
+              type="text"
+              class="input"
+              v-model="state.loginUsername"
+              placeholder="输入用户名"
+              @keyup.enter="login"
+            />
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input
+              type="password"
+              class="input"
+              v-model="state.loginPassword"
+              placeholder="输入密码"
+              @keyup.enter="login"
+            />
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" @click="login">登录</button>
+            <button class="btn btn-ghost" @click="switchToRegister">注册新用户</button>
+          </div>
         </div>
-        <div class="btn-row">
-          <button class="btn btn-primary" @click="login">登录</button>
-          <button class="btn btn-ghost" @click="register">注册新用户</button>
+
+        <div v-if="state.showRegister" class="card" style="margin-top: 20px">
+          <div class="card-title">
+            <span class="icon">✨</span> 注册
+          </div>
+          <div class="form-group">
+            <label>用户名</label>
+            <input
+              type="text"
+              class="input"
+              v-model="state.registerUsername"
+              placeholder="选择一个用户名"
+            />
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input
+              type="password"
+              class="input"
+              v-model="state.registerPassword"
+              placeholder="设置密码（至少6位）"
+              @keyup.enter="register"
+            />
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" @click="register">注册</button>
+            <button class="btn btn-ghost" @click="switchToLogin">返回登录</button>
+          </div>
         </div>
       </div>
 
       <div v-if="state.view === 'main'">
-        <div class="user-bar">
-          <div class="user-info">
-            <div class="avatar">
+        <div class="main-header">
+          <div class="main-header-left">
+            <h1 class="logo">🌳 树洞</h1>
+          </div>
+          <div class="main-header-right">
+            <button class="fab-btn" @click="togglePublishModal" title="发布帖子">+</button>
+            <button class="theme-toggle" @click="toggleTheme">
+              {{ state.theme === 'dark' ? '☀️' : '🌙' }}
+            </button>
+            <div class="user-avatar-mini" @click="toggleUserMenu">
               {{ state.user.username.charAt(0).toUpperCase() }}
             </div>
-            <div>
-              <div class="user-name">{{ state.user.username }}</div>
-              <div class="user-role" v-if="state.user.status === 99">
-                管理员
+            <div v-if="state.showUserMenu" class="user-menu">
+              <div class="user-menu-info">
+                <div class="user-menu-name">{{ state.user.username }}</div>
+                <div class="user-menu-role" v-if="state.user.status === 99">管理员</div>
               </div>
+              <button class="btn btn-ghost btn-sm" @click="logout">退出登录</button>
             </div>
           </div>
-          <button class="btn btn-ghost btn-sm" @click="logout">退出</button>
         </div>
 
         <div class="tab-bar">
@@ -81,215 +126,219 @@
           </button>
         </div>
 
-        <div v-if="state.tab === 'posts' && !state.currentPost">
-          <div class="card">
-            <div class="card-title"><span class="icon">✏️</span> 说点什么</div>
-            <div class="form-group">
-              <textarea
-                class="textarea"
-                v-model="state.postContent"
-                placeholder="匿名分享你的心事...（最多200字）"
-                maxlength="200"
-              ></textarea>
-              <div class="textarea-counter">
-                {{ state.postContent.length }}/200
-              </div>
-            </div>
-            <div style="text-align: right">
-              <button class="btn btn-primary" @click="publishPost">发布</button>
-            </div>
+        <div v-if="state.tab === 'posts'">
+          <div v-if="state.loading" class="loading">
+            <div class="spinner"></div>
+            <p>加载中...</p>
           </div>
 
-          <div class="card">
-            <div class="card-title"><span class="icon">📋</span> 树洞列表</div>
+          <div v-else-if="state.posts.length === 0" class="empty-state">
+            <div class="icon">🌱</div>
+            <p>树洞空空如也，点击右上角 + 发布第一条</p>
+          </div>
 
-            <div v-if="state.loading" class="loading">加载中...</div>
-            <div v-else-if="state.posts.length === 0" class="empty-state">
-              <div class="icon">🌱</div>
-              <p>树洞空空如也，来发第一条</p>
-            </div>
-            <div v-else>
-              <div class="post-item" v-for="post in state.posts" :key="post.id">
-                <div class="post-content">{{ post.content }}</div>
-                <div class="post-meta">
-                  <span>{{ formatTime(post.createTime) }}</span>
-                </div>
-                <div class="post-actions">
-                  <button
-                    class="btn btn-ghost btn-sm action-btn"
-                    :class="{ active: state.likedPosts[post.id] }"
-                    @click="toggleLike(post.id)"
-                  >
-                    {{ state.likedPosts[post.id] ? '❤️' : '🤍' }} {{
-                    post.likeCount || 0 }}
-                  </button>
-                  <button
-                    class="btn btn-ghost btn-sm action-btn"
-                    :class="{ active: state.favoritedPosts[post.id] }"
-                    @click="toggleFavorite(post.id)"
-                  >
-                    {{ state.favoritedPosts[post.id] ? '⭐' : '☆' }} {{
-                    post.favoriteCount || 0 }}
-                  </button>
-                  <button class="btn btn-ghost btn-sm" @click="openPost(post)">
-                    查看评论
-                  </button>
-                  <button
-                    v-if="canDeletePost(post)"
-                    class="btn btn-danger btn-sm"
-                    @click="state.user.status === 99 ? adminDeletePost(post.id) : deletePost(post.id)"
-                  >
-                    删除
-                  </button>
+          <div v-else class="post-feed">
+            <div
+              class="post-card"
+              v-for="post in state.posts"
+              :key="post.id"
+            >
+              <div class="post-card-header">
+                <div class="post-author">
+                  <div class="post-author-avatar">
+                    {{ post.username ? post.username.charAt(0).toUpperCase() : '?' }}
+                  </div>
+                  <div class="post-author-info">
+                    <div class="post-author-name">{{ post.username || '匿名用户' }}</div>
+                    <div class="post-author-time">{{ formatTime(post.createTime) }}</div>
+                  </div>
                 </div>
               </div>
 
-              <div class="pagination" v-if="totalPages > 1">
-                <span class="pagination-info">共 {{ state.total }} 条</span>
+              <div class="post-card-content">{{ post.content }}</div>
+
+              <div class="post-card-actions">
                 <button
-                  class="page-btn"
-                  :disabled="state.page <= 1"
-                  @click="goToPage(state.page - 1)"
+                  class="action-btn"
+                  :class="{ liked: state.likedPosts[post.id] }"
+                  @click="toggleLike(post.id)"
                 >
-                  ← 上一页
+                  {{ state.likedPosts[post.id] ? '❤️' : '🤍' }}
+                  <span>{{ post.likeCount || 0 }}</span>
                 </button>
                 <button
-                  v-for="p in getPageNumbers()"
-                  :key="p"
-                  class="page-btn"
-                  :class="{ active: p === state.page }"
-                  @click="typeof p === 'number' && goToPage(p)"
+                  class="action-btn"
+                  :class="{ favorited: state.favoritedPosts[post.id] }"
+                  @click="toggleFavorite(post.id)"
                 >
-                  {{ p }}
+                  {{ state.favoritedPosts[post.id] ? '⭐' : '☆' }}
+                  <span>{{ post.favoriteCount || 0 }}</span>
                 </button>
                 <button
-                  class="page-btn"
-                  :disabled="state.page >= totalPages"
-                  @click="goToPage(state.page + 1)"
+                  class="action-btn"
+                  :class="{ expanded: state.expandedPosts[post.id] }"
+                  @click="toggleComments(post)"
                 >
-                  下一页 →
+                  💬 <span>{{ post.commentCount || 0 }}</span>
                 </button>
+                <button
+                  v-if="canDeletePost(post)"
+                  class="action-btn delete-btn"
+                  @click="confirmDeletePost(post)"
+                >
+                  🗑️
+                </button>
+              </div>
+
+              <div v-if="state.expandedPosts[post.id]" class="post-comments-section">
+                <div class="comment-input-row">
+                  <input
+                    type="text"
+                    class="comment-input-field"
+                    v-model="state.commentInputs[post.id]"
+                    placeholder="写下你的评论..."
+                    @keyup.enter="publishComment(post.id)"
+                  />
+                  <button class="btn btn-primary btn-sm" @click="publishComment(post.id)">发送</button>
+                </div>
+                <div v-if="state.postComments[post.id] && state.postComments[post.id].length > 0" class="comment-list">
+                  <div class="comment-item" v-for="comment in state.postComments[post.id]" :key="comment.id">
+                    <div class="comment-author">{{ comment.username || '匿名' }}</div>
+                    <div class="comment-text">{{ comment.content }}</div>
+                    <div class="comment-meta">
+                      <span>{{ formatTime(comment.createTime) }}</span>
+                      <button
+                        v-if="canDeleteComment(comment)"
+                        class="comment-delete-btn"
+                        @click="confirmDeleteComment(comment)"
+                      >删除</button>
+                    </div>
+                  </div>
+                </div>
+                <div v-else-if="!state.commentLoading[post.id]" class="comment-empty">
+                  暂无评论，快来评论吧
+                </div>
+                <div v-if="state.commentLoading[post.id]" class="loading" style="padding: 20px">
+                  <div class="spinner"></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div v-if="state.tab === 'posts' && state.currentPost">
-          <div class="back-btn" @click="closeComment">← 返回列表</div>
-
-          <div class="card">
-            <div class="post-detail">
-              <div class="post-detail-content">
-                {{ state.currentPost.content }}
-              </div>
-              <div class="post-detail-meta">
-                {{ formatTime(state.currentPost.createTime) }}
-              </div>
-              <div class="post-actions" style="margin-top: 12px">
-                <button
-                  class="btn btn-ghost btn-sm action-btn"
-                  :class="{ active: state.likedPosts[state.currentPost.id] }"
-                  @click="toggleLike(state.currentPost.id)"
-                >
-                  {{ state.likedPosts[state.currentPost.id] ? '❤️' : '🤍' }} {{
-                  state.currentPost.likeCount || 0 }}
-                </button>
-                <button
-                  class="btn btn-ghost btn-sm action-btn"
-                  :class="{ active: state.favoritedPosts[state.currentPost.id] }"
-                  @click="toggleFavorite(state.currentPost.id)"
-                >
-                  {{ state.favoritedPosts[state.currentPost.id] ? '⭐' : '☆' }}
-                  {{ state.currentPost.favoriteCount || 0 }}
-                </button>
-              </div>
-            </div>
-
-            <div class="comment-input">
-              <textarea
-                class="textarea"
-                v-model="state.commentContent"
-                placeholder="写下你的评论...（最多300字）"
-                maxlength="300"
-              ></textarea>
-              <button class="btn btn-primary" @click="publishComment">
-                发送
+          <div class="pagination" v-if="totalPages > 1">
+            <button
+              class="page-btn"
+              :disabled="state.page <= 1"
+              @click="goToPage(state.page - 1)"
+            >
+              ←
+            </button>
+            <template v-for="p in getPageNumbers()" :key="p">
+              <span v-if="p === '...'" class="page-ellipsis">...</span>
+              <button
+                v-else
+                class="page-btn"
+                :class="{ active: p === state.page }"
+                @click="goToPage(p)"
+              >
+                {{ p }}
               </button>
-            </div>
-
-            <div v-if="state.loading" class="loading">加载中...</div>
-            <div
-              v-else-if="state.comments.length === 0"
-              class="empty-state"
-              style="padding: 20px"
+            </template>
+            <button
+              class="page-btn"
+              :disabled="state.page >= totalPages"
+              @click="goToPage(state.page + 1)"
             >
-              <div class="icon">💬</div>
-              <p>暂无评论，来评论吧</p>
-            </div>
-            <div
-              v-else
-              class="comment-item"
-              v-for="comment in state.comments"
-              :key="comment.id"
-            >
-              <div class="comment-content">{{ comment.content }}</div>
-              <div class="comment-meta">
-                <span>{{ formatTime(comment.createTime) }}</span>
-                <button
-                  v-if="canDeleteComment(comment)"
-                  class="btn btn-danger btn-sm"
-                  @click="state.user.status === 99 ? adminDeleteComment(comment.id) : deleteComment(comment.id)"
-                >
-                  删除
-                </button>
-              </div>
-            </div>
+              →
+            </button>
           </div>
         </div>
 
         <div v-if="state.tab === 'favorites'">
-          <div class="card">
-            <div class="card-title"><span class="icon">⭐</span> 我的收藏</div>
+          <div v-if="state.loading" class="loading">
+            <div class="spinner"></div>
+            <p>加载中...</p>
+          </div>
 
-            <div v-if="state.loading" class="loading">加载中...</div>
+          <div v-else-if="state.favoritePosts.length === 0" class="empty-state">
+            <div class="icon">☆</div>
+            <p>暂无收藏</p>
+          </div>
+
+          <div v-else class="post-feed">
             <div
-              v-else-if="state.favoritePosts.length === 0"
-              class="empty-state"
+              class="post-card"
+              v-for="post in state.favoritePosts"
+              :key="post.id"
             >
-              <div class="icon">☆</div>
-              <p>暂无收藏</p>
-            </div>
-            <div v-else>
-              <div
-                class="post-item"
-                v-for="post in state.favoritePosts"
-                :key="post.id"
-              >
-                <div class="post-content">{{ post.content }}</div>
-                <div class="post-meta">
-                  <span>{{ formatTime(post.createTime) }}</span>
+              <div class="post-card-header">
+                <div class="post-author">
+                  <div class="post-author-avatar">
+                    {{ post.username ? post.username.charAt(0).toUpperCase() : '?' }}
+                  </div>
+                  <div class="post-author-info">
+                    <div class="post-author-name">{{ post.username || '匿名用户' }}</div>
+                    <div class="post-author-time">{{ formatTime(post.createTime) }}</div>
+                  </div>
                 </div>
-                <div class="post-actions">
-                  <button
-                    class="btn btn-ghost btn-sm action-btn"
-                    :class="{ active: state.likedPosts[post.id] }"
-                    @click="toggleLike(post.id)"
-                  >
-                    {{ state.likedPosts[post.id] ? '❤️' : '🤍' }} {{
-                    post.likeCount || 0 }}
-                  </button>
-                  <button
-                    class="btn btn-ghost btn-sm action-btn active"
-                    @click="toggleFavorite(post.id)"
-                  >
-                    ⭐ {{ post.favoriteCount || 0 }}
-                  </button>
-                  <button
-                    class="btn btn-ghost btn-sm"
-                    @click="openPost(post); state.tab = 'posts'"
-                  >
-                    查看评论
-                  </button>
+              </div>
+
+              <div class="post-card-content">{{ post.content }}</div>
+
+              <div class="post-card-actions">
+                <button
+                  class="action-btn"
+                  :class="{ liked: state.likedPosts[post.id] }"
+                  @click="toggleLike(post.id)"
+                >
+                  {{ state.likedPosts[post.id] ? '❤️' : '🤍' }}
+                  <span>{{ post.likeCount || 0 }}</span>
+                </button>
+                <button
+                  class="action-btn favorited"
+                  @click="toggleFavorite(post.id)"
+                >
+                  ⭐ <span>{{ post.favoriteCount || 0 }}</span>
+                </button>
+                <button
+                  class="action-btn"
+                  :class="{ expanded: state.expandedPosts[post.id] }"
+                  @click="toggleComments(post)"
+                >
+                  💬 <span>{{ post.commentCount || 0 }}</span>
+                </button>
+              </div>
+
+              <div v-if="state.expandedPosts[post.id]" class="post-comments-section">
+                <div class="comment-input-row">
+                  <input
+                    type="text"
+                    class="comment-input-field"
+                    v-model="state.commentInputs[post.id]"
+                    placeholder="写下你的评论..."
+                    @keyup.enter="publishComment(post.id)"
+                  />
+                  <button class="btn btn-primary btn-sm" @click="publishComment(post.id)">发送</button>
+                </div>
+                <div v-if="state.postComments[post.id] && state.postComments[post.id].length > 0" class="comment-list">
+                  <div class="comment-item" v-for="comment in state.postComments[post.id]" :key="comment.id">
+                    <div class="comment-author">{{ comment.username || '匿名' }}</div>
+                    <div class="comment-text">{{ comment.content }}</div>
+                    <div class="comment-meta">
+                      <span>{{ formatTime(comment.createTime) }}</span>
+                      <button
+                        v-if="canDeleteComment(comment)"
+                        class="comment-delete-btn"
+                        @click="confirmDeleteComment(comment)"
+                      >删除</button>
+                    </div>
+                  </div>
+                </div>
+                <div v-else-if="!state.commentLoading[post.id]" class="comment-empty">
+                  暂无评论，快来评论吧
+                </div>
+                <div v-if="state.commentLoading[post.id]" class="loading" style="padding: 20px">
+                  <div class="spinner"></div>
                 </div>
               </div>
             </div>
@@ -297,44 +346,29 @@
         </div>
 
         <div v-if="state.tab === 'admin'">
-          <div class="card">
-            <div class="card-title">
-              <span class="icon">👥</span> 待审核用户
-            </div>
+          <div v-if="state.loading" class="loading">
+            <div class="spinner"></div>
+            <p>加载中...</p>
+          </div>
 
-            <div v-if="state.loading" class="loading">加载中...</div>
-            <div
-              v-else-if="state.waitAuditUsers.length === 0"
-              class="empty-state"
-            >
-              <div class="icon">✅</div>
-              <p>暂无待审核用户</p>
-            </div>
-            <div v-else>
-              <div
-                class="audit-item"
-                v-for="user in state.waitAuditUsers"
-                :key="user.id"
-              >
+          <div v-else-if="state.waitAuditUsers.length === 0" class="empty-state">
+            <div class="icon">✅</div>
+            <p>暂无待审核用户</p>
+          </div>
+
+          <div v-else class="admin-list">
+            <div class="admin-card">
+              <div class="card-title">
+                <span class="icon">👥</span> 待审核用户
+              </div>
+              <div class="audit-item" v-for="user in state.waitAuditUsers" :key="user.id">
                 <div class="audit-info">
                   <div class="audit-name">{{ user.username }}</div>
-                  <div class="audit-time">
-                    {{ formatTime(user.createTime) }}
-                  </div>
+                  <div class="audit-time">{{ formatTime(user.createTime) }}</div>
                 </div>
                 <div class="audit-actions">
-                  <button
-                    class="btn btn-success btn-sm"
-                    @click="auditUser(user.username, 1)"
-                  >
-                    通过
-                  </button>
-                  <button
-                    class="btn btn-danger btn-sm"
-                    @click="auditUser(user.username, 2)"
-                  >
-                    封禁
-                  </button>
+                  <button class="btn btn-success btn-sm" @click="auditUser(user.username, 1)">通过</button>
+                  <button class="btn btn-danger btn-sm" @click="auditUser(user.username, 2)">封禁</button>
                 </div>
               </div>
             </div>
@@ -343,12 +377,50 @@
       </div>
 
       <div
-        v-if="state.toast"
-        class="toast"
-        :class="'toast-' + state.toast.type"
+        class="modal-overlay"
+        :class="{ show: state.publishModal.show }"
+        @click.self="closePublishModal"
       >
+        <div class="modal publish-modal">
+          <div class="modal-header">
+            <div class="modal-title">发布帖子</div>
+            <button class="modal-close" @click="closePublishModal">×</button>
+          </div>
+          <div class="form-group">
+            <textarea
+              class="textarea"
+              v-model="state.postContent"
+              placeholder="匿名分享你的心事...（最多500字）"
+              maxlength="500"
+            ></textarea>
+            <div class="textarea-counter">{{ state.postContent.length }}/500</div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" @click="closePublishModal">取消</button>
+            <button class="btn btn-primary" @click="publishPost">发布</button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="modal-overlay"
+        :class="{ show: state.modal.show }"
+        @click.self="closeModal"
+      >
+        <div class="modal">
+          <div class="modal-title">{{ state.modal.title }}</div>
+          <div class="modal-text">{{ state.modal.text }}</div>
+          <div class="modal-actions">
+            <button class="btn btn-ghost" @click="closeModal">取消</button>
+            <button class="btn btn-danger" @click="confirmAction">{{ state.modal.actionText }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="toast" :class="['toast-' + state.toast.type, { show: state.toast.show }]">
         {{ state.toast.msg }}
       </div>
+
     </div>
 
     <script src="https://unpkg.com/vue@3.4.0/dist/vue.global.prod.js"></script>

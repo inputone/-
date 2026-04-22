@@ -1,6 +1,6 @@
 const BASE_URL = "";
 
-const { createApp, reactive, computed, onMounted, nextTick } = Vue;
+const { createApp, reactive, computed, onMounted } = Vue;
 
 const state = reactive({
   view: "login",
@@ -10,28 +10,43 @@ const state = reactive({
   total: 0,
   page: 1,
   size: 10,
-  currentPost: null,
-  comments: [],
   waitAuditUsers: [],
   loading: false,
-  toast: null,
+  toast: { show: false, msg: "", type: "info" },
   postContent: "",
-  commentContent: "",
   loginUsername: "",
   loginPassword: "",
   registerUsername: "",
   registerPassword: "",
+  showRegister: false,
   likedPosts: {},
   favoritedPosts: {},
   favoritePosts: [],
+  theme: localStorage.getItem("theme") || "dark",
+  expandedPosts: {},
+  postComments: {},
+  commentInputs: {},
+  commentLoading: {},
+  showUserMenu: false,
+  publishModal: {
+    show: false,
+  },
+  modal: {
+    show: false,
+    title: "",
+    text: "",
+    actionText: "确认",
+    callback: null,
+  },
+  debounceTimers: {},
 });
 
 const totalPages = computed(() => Math.ceil(state.total / state.size) || 1);
 
 function showToast(msg, type = "info") {
-  state.toast = { msg, type };
+  state.toast = { show: true, msg, type };
   setTimeout(() => {
-    state.toast = null;
+    state.toast.show = false;
   }, 2500);
 }
 
@@ -57,6 +72,16 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function debounce(key, fn) {
+  if (state.debounceTimers[key]) {
+    return false;
+  }
+  state.debounceTimers[key] = setTimeout(() => {
+    delete state.debounceTimers[key];
+  }, 500);
+  return true;
+}
+
 async function api(method, path, body) {
   const opts = { method, credentials: "include" };
   if (body) {
@@ -65,7 +90,11 @@ async function api(method, path, body) {
   }
   try {
     const res = await fetch(BASE_URL + path, opts);
-    return res.json();
+    const data = await res.json();
+    if (data.code !== 200) {
+      showToast(data.msg, "error");
+    }
+    return data;
   } catch (err) {
     showToast("网络请求失败，请检查后端服务", "error");
     throw err;
@@ -99,10 +128,19 @@ async function login() {
   );
   if (data.code === 200) {
     showToast(data.msg, "success");
+    state.loginPassword = "";
     checkLogin();
-  } else {
-    showToast(data.msg, "error");
   }
+}
+
+function switchToRegister() {
+  state.showRegister = true;
+  state.registerUsername = "";
+  state.registerPassword = "";
+}
+
+function switchToLogin() {
+  state.showRegister = false;
 }
 
 async function register() {
@@ -125,27 +163,39 @@ async function register() {
     state.loginPassword = "";
     state.registerUsername = "";
     state.registerPassword = "";
-  } else {
-    showToast(data.msg, "error");
+    state.showRegister = false;
   }
 }
 
 async function logout() {
   try {
-    const data = await api("GET", "/user/logout");
-    showToast(data.msg, "success");
-  } catch {
-    showToast("退出成功", "success");
-  }
+    await api("GET", "/user/logout");
+  } catch {}
+  showToast("已退出", "success");
   setTimeout(() => {
     state.user = null;
     state.view = "login";
     state.posts = [];
-    state.comments = [];
     state.waitAuditUsers = [];
-    state.currentPost = null;
     state.page = 1;
-  }, 800);
+    state.tab = "posts";
+    state.showUserMenu = false;
+  }, 500);
+}
+
+function toggleUserMenu() {
+  state.showUserMenu = !state.showUserMenu;
+}
+
+function togglePublishModal() {
+  state.publishModal.show = !state.publishModal.show;
+  if (state.publishModal.show) {
+    state.postContent = "";
+  }
+}
+
+function closePublishModal() {
+  state.publishModal.show = false;
 }
 
 async function loadPosts() {
@@ -159,8 +209,6 @@ async function loadPosts() {
       state.posts = data.data.list;
       state.total = data.data.total;
       loadLikeAndFavoriteStatus();
-    } else {
-      showToast(data.msg, "error");
     }
   } catch {
     showToast("加载帖子失败", "error");
@@ -195,39 +243,52 @@ async function checkFavorited(postId) {
 }
 
 async function toggleLike(postId) {
+  if (!debounce(`like_${postId}`)) {
+    showToast("操作太频繁，请稍后再试", "warning");
+    return;
+  }
   const data = await api("POST", `/post/like/${postId}`);
   if (data.code === 200) {
     const wasLiked = state.likedPosts[postId];
     state.likedPosts[postId] = !wasLiked;
     const post = state.posts.find((p) => p.id === postId);
     if (post) {
-      post.likeCount = (post.likeCount || 0) + (wasLiked ? -1 : 1);
+      post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? -1 : 1));
     }
-    if (state.currentPost && state.currentPost.id === postId) {
-      state.currentPost.likeCount =
-        (state.currentPost.likeCount || 0) + (wasLiked ? -1 : 1);
+    const favPost = state.favoritePosts.find((p) => p.id === postId);
+    if (favPost) {
+      favPost.likeCount = Math.max(
+        0,
+        (favPost.likeCount || 0) + (wasLiked ? -1 : 1),
+      );
     }
-  } else {
-    showToast(data.msg, "error");
   }
 }
 
 async function toggleFavorite(postId) {
+  if (!debounce(`favorite_${postId}`)) {
+    showToast("操作太频繁，请稍后再试", "warning");
+    return;
+  }
   const data = await api("POST", `/post/favorite/${postId}`);
   if (data.code === 200) {
     const wasFavorited = state.favoritedPosts[postId];
     state.favoritedPosts[postId] = !wasFavorited;
     const post = state.posts.find((p) => p.id === postId);
     if (post) {
-      post.favoriteCount = (post.favoriteCount || 0) + (wasFavorited ? -1 : 1);
+      post.favoriteCount = Math.max(
+        0,
+        (post.favoriteCount || 0) + (wasFavorited ? -1 : 1),
+      );
     }
-    if (state.currentPost && state.currentPost.id === postId) {
-      state.currentPost.favoriteCount =
-        (state.currentPost.favoriteCount || 0) + (wasFavorited ? -1 : 1);
+    const favPost = state.favoritePosts.find((p) => p.id === postId);
+    if (favPost) {
+      favPost.favoriteCount = Math.max(
+        0,
+        (favPost.favoriteCount || 0) + (wasFavorited ? -1 : 1),
+      );
     }
     showToast(wasFavorited ? "已取消收藏" : "已收藏", "success");
-  } else {
-    showToast(data.msg, "error");
   }
 }
 
@@ -237,8 +298,12 @@ async function loadFavorites() {
     const data = await api("GET", "/post/favorites");
     if (data.code === 200) {
       state.favoritePosts = data.data;
-    } else {
-      showToast(data.msg, "error");
+      if (state.user) {
+        for (const post of state.favoritePosts) {
+          checkLiked(post.id);
+          checkFavorited(post.id);
+        }
+      }
     }
   } catch {
     showToast("加载收藏列表失败", "error");
@@ -259,11 +324,20 @@ async function publishPost() {
   if (data.code === 200) {
     showToast(data.msg, "success");
     state.postContent = "";
+    closePublishModal();
     state.page = 1;
     loadPosts();
-  } else {
-    showToast(data.msg, "error");
   }
+}
+
+function confirmDeletePost(post) {
+  state.modal = {
+    show: true,
+    title: "删除帖子",
+    text: "确定要删除这条帖子吗？此操作不可恢复。",
+    actionText: "删除",
+    callback: () => deletePost(post.id),
+  };
 }
 
 async function deletePost(postId) {
@@ -271,9 +345,8 @@ async function deletePost(postId) {
   if (data.code === 200) {
     showToast(data.msg, "success");
     loadPosts();
-  } else {
-    showToast(data.msg, "error");
   }
+  closeModal();
 }
 
 async function adminDeletePost(postId) {
@@ -281,72 +354,80 @@ async function adminDeletePost(postId) {
   if (data.code === 200) {
     showToast(data.msg, "success");
     loadPosts();
-  } else {
-    showToast(data.msg, "error");
   }
 }
 
-function openPost(post) {
-  state.currentPost = post;
-  loadComments(post.id);
-}
-
-function closeComment() {
-  state.currentPost = null;
-  state.comments = [];
+async function toggleComments(post) {
+  const postId = post.id;
+  if (state.expandedPosts[postId]) {
+    state.expandedPosts[postId] = false;
+  } else {
+    state.expandedPosts[postId] = true;
+    if (!state.postComments[postId]) {
+      loadComments(postId);
+    }
+  }
 }
 
 async function loadComments(postId) {
-  state.loading = true;
+  state.commentLoading[postId] = true;
   try {
     const data = await api("GET", `/comment/post/${postId}`);
     if (data.code === 200) {
-      state.comments = data.data;
-    } else {
-      showToast(data.msg, "error");
+      state.postComments[postId] = data.data;
     }
   } catch {
     showToast("加载评论失败", "error");
   }
-  state.loading = false;
+  state.commentLoading[postId] = false;
 }
 
-async function publishComment() {
-  if (!state.commentContent) {
+async function publishComment(postId) {
+  const content = state.commentInputs[postId];
+  if (!content) {
     showToast("评论内容不能为空", "warning");
     return;
   }
   const data = await api(
     "POST",
     "/comment",
-    `postId=${state.currentPost.id}&content=${encodeURIComponent(state.commentContent)}`,
+    `postId=${postId}&content=${encodeURIComponent(content)}`,
   );
   if (data.code === 200) {
     showToast(data.msg, "success");
-    state.commentContent = "";
-    loadComments(state.currentPost.id);
-  } else {
-    showToast(data.msg, "error");
+    state.commentInputs[postId] = "";
+    loadComments(postId);
   }
+}
+
+function confirmDeleteComment(comment) {
+  state.modal = {
+    show: true,
+    title: "删除评论",
+    text: "确定要删除这条评论吗？此操作不可恢复。",
+    actionText: "删除",
+    callback: () => deleteComment(comment.id),
+  };
 }
 
 async function deleteComment(commentId) {
   const data = await api("DELETE", `/comment/${commentId}`);
   if (data.code === 200) {
     showToast(data.msg, "success");
-    loadComments(state.currentPost.id);
-  } else {
-    showToast(data.msg, "error");
+    for (const postId in state.postComments) {
+      loadComments(parseInt(postId));
+    }
   }
+  closeModal();
 }
 
 async function adminDeleteComment(commentId) {
   const data = await api("DELETE", `/admin/comment/${commentId}`);
   if (data.code === 200) {
     showToast(data.msg, "success");
-    loadComments(state.currentPost.id);
-  } else {
-    showToast(data.msg, "error");
+    for (const postId in state.postComments) {
+      loadComments(parseInt(postId));
+    }
   }
 }
 
@@ -356,8 +437,6 @@ async function loadWaitAuditUsers() {
     const data = await api("GET", "/admin/waitAuditUserList");
     if (data.code === 200) {
       state.waitAuditUsers = data.data;
-    } else {
-      showToast(data.msg, "error");
     }
   } catch {
     showToast("加载待审核用户失败", "error");
@@ -374,8 +453,6 @@ async function auditUser(username, status) {
   if (data.code === 200) {
     showToast(data.msg, "success");
     loadWaitAuditUsers();
-  } else {
-    showToast(data.msg, "error");
   }
 }
 
@@ -434,9 +511,33 @@ function canDeleteComment(comment) {
   return comment.userId === state.user.id;
 }
 
+function closeModal() {
+  state.modal.show = false;
+}
+
+function confirmAction() {
+  if (state.modal.callback) {
+    state.modal.callback();
+  }
+  closeModal();
+}
+
+function toggleTheme() {
+  state.theme = state.theme === "dark" ? "light" : "dark";
+  localStorage.setItem("theme", state.theme);
+  document.documentElement.setAttribute("data-theme", state.theme);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("theme") || "dark";
+  state.theme = saved;
+  document.documentElement.setAttribute("data-theme", saved);
+}
+
 const app = createApp({
   setup() {
     onMounted(() => {
+      initTheme();
       checkLogin();
     });
 
@@ -448,12 +549,16 @@ const app = createApp({
       escapeHtml,
       login,
       register,
+      switchToRegister,
+      switchToLogin,
       logout,
+      toggleUserMenu,
+      togglePublishModal,
+      closePublishModal,
       publishPost,
       deletePost,
       adminDeletePost,
-      openPost,
-      closeComment,
+      toggleComments,
       publishComment,
       deleteComment,
       adminDeleteComment,
@@ -466,6 +571,11 @@ const app = createApp({
       toggleLike,
       toggleFavorite,
       loadFavorites,
+      toggleTheme,
+      confirmDeletePost,
+      confirmDeleteComment,
+      closeModal,
+      confirmAction,
     };
   },
 });

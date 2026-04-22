@@ -30,7 +30,7 @@ public class AdminController {
     /** 用户审核请求参数 */
     @Data
     public static class UserAuditDTO {
-        private String userName;
+        private String username;
         private Integer status;
     }
 
@@ -47,12 +47,12 @@ public class AdminController {
 
     /** 审核用户（通过/封禁） */
     @PostMapping("/auditUser")
-    public Result<String> auditUser(@RequestBody UserAuditDTO auditDTO, HttpSession session) {
+    public Result<String> auditUser(@ModelAttribute UserAuditDTO auditDTO, HttpSession session) {
         User admin = getAdminFromSession(session);
         if (admin == null) {
             return Result.error("无管理员权限");
         }
-        adminService.updateStatus(auditDTO.getUserName(), auditDTO.getStatus());
+        adminService.updateStatus(auditDTO.getUsername(), auditDTO.getStatus());
         return Result.success("审核成功");
     }
 

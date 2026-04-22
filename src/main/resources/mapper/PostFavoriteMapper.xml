@@ -5,24 +5,26 @@
 
 <mapper namespace="com.huanghaha.treehole.mapper.PostFavoriteMapper">
 
-    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    <insert id="toggleFavorite">
         INSERT INTO post_favorite (user_id, post_id, is_deleted, create_time)
-        VALUES (#{userId}, #{postId}, 0, #{createTime})
+        VALUES (#{userId}, #{postId}, 0, NOW())
+        ON DUPLICATE KEY UPDATE is_deleted = IF(is_deleted = 0, 1, 0)
     </insert>
 
-    <select id="findByUserIdAndPostId" resultType="com.huanghaha.treehole.entity.PostFavorite">
-        SELECT * FROM post_favorite
+    <select id="findByUserIdAndPostId" resultType="java.lang.Long">
+        SELECT id FROM post_favorite
         WHERE user_id = #{userId} AND post_id = #{postId} AND is_deleted = 0
     </select>
 
-    <update id="deleteById">
-        UPDATE post_favorite SET is_deleted = 1 WHERE id = #{id}
-    </update>
-
-    <select id="findByUserId" resultType="com.huanghaha.treehole.entity.PostFavorite">
-        SELECT * FROM post_favorite
+    <select id="findByUserId" resultType="java.lang.Long">
+        SELECT post_id FROM post_favorite
         WHERE user_id = #{userId} AND is_deleted = 0
         ORDER BY create_time DESC
+    </select>
+
+    <select id="countByPostId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM post_favorite
+        WHERE post_id = #{postId} AND is_deleted = 0
     </select>
 
 </mapper>

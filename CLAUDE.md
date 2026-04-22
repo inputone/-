@@ -33,10 +33,10 @@ src/main/java/com/huanghaha/treehole/
 │   └── AdminController.java     # 用户审核/删帖/删评论（权限校验抽为 getAdminFromSession）
 ├── entity/
 │   ├── User.java                # id/username/password/status/isDeleted/createTime
-│   ├── Post.java                # id/userId/content/likeCount/favoriteCount/isDeleted/createTime
+│   ├── Post.java                # id/userId/username/content/likeCount/favoriteCount/isDeleted/createTime
 │   ├── PostLike.java            # id/userId/postId/isDeleted/createTime
 │   ├── PostFavorite.java        # id/userId/postId/isDeleted/createTime
-│   └── Comment.java             # id/content/userId/postId/isDeleted/createTime
+│   └── Comment.java             # id/userId/username/content/postId/isDeleted/createTime
 ├── exception/
 │   ├── BusinessException.java   # 自定义业务异常（code + message）
 │   └── GlobalExceptionHandler.java  # 全局异常处理（区分业务/系统异常）
@@ -90,7 +90,7 @@ src/main/resources/
 | 用户 | POST   | /user/login                | 否     | 登录                      |
 | 用户 | GET    | /user/me                   | 否     | 获取当前用户信息          |
 | 用户 | GET    | /user/logout               | 否     | 退出登录                  |
-| 帖子 | POST   | /post/publish              | 是     | 发布帖子（≤200字）        |
+| 帖子 | POST   | /post/publish              | 是     | 发布帖子（≤500字）        |
 | 帖子 | GET    | /post/list                 | 否     | 全量帖子列表              |
 | 帖子 | GET    | /post/page                 | 否     | 分页帖子（Redis缓存5min） |
 | 帖子 | DELETE | /post/delete               | 是     | 删除自己的帖子            |
@@ -99,7 +99,7 @@ src/main/resources/
 | 帖子 | POST   | /post/favorite/{postId}    | 是     | 收藏/取消收藏             |
 | 帖子 | GET    | /post/favorited/{postId}   | 是     | 查询当前用户是否收藏      |
 | 帖子 | GET    | /post/favorites            | 是     | 获取当前用户收藏列表      |
-| 评论 | POST   | /comment                   | 是     | 发布评论（≤300字）        |
+| 评论 | POST   | /comment                   | 是     | 发布评论（≤200字）        |
 | 评论 | GET    | /comment/post/{postId}     | 否     | 按帖子查评论              |
 | 评论 | DELETE | /comment/{id}              | 是     | 删除自己的评论            |
 | 管理 | GET    | /admin/waitAuditUserList   | 是     | 待审核用户列表            |
@@ -115,8 +115,8 @@ src/main/resources/
 - 帖子分页使用 Redis 缓存，key 格式 `post:page:{page}:{size}`，TTL 5分钟（Redis 连接失败时自动降级为数据库查询，不影响业务）
 - 发布帖子后调用 `clearPageCache()` 清除分页缓存（Redis 不可用时静默跳过）
 - 敏感词列表配置在 `application.yml` 的 `treehole.forbidden-words` 中
-- 帖子内容上限 200 字，评论内容上限 300 字
-- 点赞/收藏采用 toggle 模式：已点赞则取消，未点赞则点赞，使用 `@Transactional` 保证关联表操作和冗余计数字段更新的一致性
+- 帖子内容上限 500 字，评论内容上限 200 字
+- 点赞/收藏采用 toggle 模式 + 原子 SQL（INSERT ... ON DUPLICATE KEY UPDATE），避免并发竞态导致重复点赞报错；前端 500ms 防抖防止快速点击
 
 ## 登录拦截器路径规则
 
@@ -142,7 +142,7 @@ src/main/resources/
 
 ## 编码规范
 
-- 统一使用 `@Resource` 注入（非 `@Autowired`）
+- 统一使用 `@Autowired`
 - 统一返回 `Result<T>`，成功 code=200，失败 code=500
 - Controller 层只做参数获取和 Session 读取，校验逻辑统一在 Service 层
 - 业务异常通过 `throw new BusinessException()` 抛出，系统异常通过 RuntimeException 抛出
@@ -161,7 +161,11 @@ src/main/resources/
 5. ✅ Post/Comment 改为逻辑删除，三张表统一使用 is_deleted 字段
 6. ✅ 前端页面美化（暗色主题、卡片布局、Toast 提示、Tab 切换、响应式设计）
 7. ✅ Redis 操作容错处理（PostServiceImpl 所有 Redis 调用 try-catch 包裹，连接失败时降级为数据库查询并打印 warn 日志）
-8. ✅ 帖子点赞/收藏功能（PostLike/PostFavorite 关联表 + Post 冗余计数字段，toggle 模式，@Transactional 保证一致性）
+8. ✅ 帖子点赞/收藏功能（PostLike/PostFavorite 关联表 + Post 冗余计数字段，toggle 模式 + INSERT ON DUPLICATE KEY UPDATE 原子操作 + 前端 500ms 防抖）
+9. ✅ Post/Comment 返回 username 而非 userId（JOIN 查询），前端展示发布者昵称
+10. ✅ 前端 UI 改版：发帖入口改为右上角 + 按钮、卡片式帖子布局、评论折叠展开
+11. ✅ 修复 PostLikeMapper/PostFavoriteMapper toggle SQL 中 createTime 参数缺失问题（MyBatis Parameter not found）
+12. ✅ 修复 AdminController auditUser 接口字段名不匹配问题（userName → username，@RequestBody → @ModelAttribute）
 
 ## 待优化方向（简历项目增强）
 
@@ -175,7 +179,7 @@ src/main/resources/
 ### 安全层面
 
 5. **数据库密码明文**：application.yml 中密码为明文 1234
-6. **用户信息泄露风险**：Post/Comment 返回了 userId，匿名社区不应暴露
+6. ✅ ~~**用户信息泄露风险**：Post/Comment 返回了 userId，匿名社区不应暴露~~（已改为返回 username）
 7. **缺少接口限流**：注册/登录等接口无防刷机制
 8. **CORS 未配置**：前后端分离时需要
 

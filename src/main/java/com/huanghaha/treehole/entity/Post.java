@@ -13,6 +13,7 @@ public class Post {
 
     private Long id;
     private Long userId;
+    private String username;
     private String content;
     /** 点赞数（冗余字段，由 post_like 表聚合维护） */
     private Integer likeCount;

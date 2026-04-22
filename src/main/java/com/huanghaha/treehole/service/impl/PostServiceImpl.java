@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 public class PostServiceImpl implements PostService {
 
     /** 帖子内容最大长度 */
-    private static final int MAX_CONTENT_LENGTH = 200;
+    private static final int MAX_CONTENT_LENGTH = 500;
     /** 默认页码 */
     private static final int DEFAULT_PAGE = 1;
     /** 默认每页条数 */

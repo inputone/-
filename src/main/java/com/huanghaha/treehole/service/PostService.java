@@ -12,7 +12,7 @@ import java.util.Map;
 public interface PostService {
 
     /**
-     * 发布帖子，内容上限 200 字，发布后清除分页缓存
+     * 发布帖子，内容上限 500 字，发布后清除分页缓存
      *
      * @param userId  发布者ID
      * @param content 帖子内容

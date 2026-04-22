@@ -11,11 +11,15 @@
     </insert>
 
     <select id="findAll" resultType="com.huanghaha.treehole.entity.Post">
-        SELECT * FROM post WHERE is_deleted = 0 ORDER BY create_time DESC
+        SELECT p.*, u.username FROM post p
+        LEFT JOIN user u ON p.user_id = u.id
+        WHERE p.is_deleted = 0 ORDER BY p.create_time DESC
     </select>
 
     <select id="findByPage" resultType="com.huanghaha.treehole.entity.Post">
-        SELECT * FROM post WHERE is_deleted = 0 ORDER BY create_time DESC LIMIT #{offset}, #{pageSize}
+        SELECT p.*, u.username FROM post p
+        LEFT JOIN user u ON p.user_id = u.id
+        WHERE p.is_deleted = 0 ORDER BY p.create_time DESC LIMIT #{offset}, #{pageSize}
     </select>
 
     <select id="count" resultType="java.lang.Long">
@@ -23,7 +27,9 @@
     </select>
 
     <select id="findById" resultType="com.huanghaha.treehole.entity.Post">
-        SELECT * FROM post WHERE id = #{id} AND is_deleted = 0
+        SELECT p.*, u.username FROM post p
+        LEFT JOIN user u ON p.user_id = u.id
+        WHERE p.id = #{id} AND p.is_deleted = 0
     </select>
 
     <update id="deleteById">
