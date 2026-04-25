@@ -11,6 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.Resource;
 
+/**
+ * 点赞服务实现
+ * 采用 toggle 模式：已点赞则取消，未点赞则点赞
+ * 同时维护 Post 表的冗余计数字段 like_count
+ */
 @Service
 @Slf4j
 public class LikeServiceImpl implements LikeService {
@@ -21,6 +26,10 @@ public class LikeServiceImpl implements LikeService {
     @Resource
     private PostMapper postMapper;
 
+    /**
+     * 切换点赞状态
+     * 流程：检查是否已点赞 → toggle → 更新帖子点赞计数（+1 或 -1）
+     */
     @Override
     @Transactional
     public void toggleLike(Long userId, Long postId) {
@@ -46,6 +55,7 @@ public class LikeServiceImpl implements LikeService {
         }
     }
 
+    /** 查询用户是否已点赞某帖子 */
     @Override
     public boolean isLiked(Long userId, Long postId) {
         if (userId == null || postId == null) {

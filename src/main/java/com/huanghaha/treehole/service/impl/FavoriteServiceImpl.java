@@ -13,6 +13,11 @@ import jakarta.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 收藏服务实现
+ * 采用 toggle 模式：已收藏则取消，未收藏则收藏
+ * 同时维护 Post 表的冗余计数字段 favorite_count
+ */
 @Service
 @Slf4j
 public class FavoriteServiceImpl implements FavoriteService {
@@ -23,6 +28,10 @@ public class FavoriteServiceImpl implements FavoriteService {
     @Resource
     private PostMapper postMapper;
 
+    /**
+     * 切换收藏状态
+     * 流程：检查是否已收藏 → toggle → 更新帖子收藏计数（+1 或 -1）
+     */
     @Override
     @Transactional
     public void toggleFavorite(Long userId, Long postId) {
@@ -48,6 +57,7 @@ public class FavoriteServiceImpl implements FavoriteService {
         }
     }
 
+    /** 查询用户是否已收藏某帖子 */
     @Override
     public boolean isFavorited(Long userId, Long postId) {
         if (userId == null || postId == null) {
@@ -56,6 +66,7 @@ public class FavoriteServiceImpl implements FavoriteService {
         return postFavoriteMapper.findByUserIdAndPostId(userId, postId) != null;
     }
 
+    /** 查询用户收藏的帖子列表 */
     @Override
     public List<Post> listByUserId(Long userId) {
         if (userId == null) {

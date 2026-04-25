@@ -88,7 +88,7 @@ src/main/resources/
 - User.status: 0=待审核, 1=正常, 2=封禁, 99=管理员
 - 所有表均使用逻辑删除：`is_deleted`（0=未删除, 1=已删除）
 - 删除操作为 UPDATE is_deleted=1，查询均带 WHERE is_deleted=0 条件
-- Post 表含冗余计数字段 `like_count`、`favorite_count`，点赞/收藏时通过 SQL 原子更新（`GREATEST(count-1, 0)` 防负数）
+- Post 表含冗余计数字段 `like_count`、`favorite_count`、`comment_count`，点赞/收藏/评论时通过 SQL 原子更新（`GREATEST(count-1, 0)` 防负数）
 - post_like 和 post_favorite 均有 `uk_user_post` 唯一索引，防止同一用户重复点赞/收藏
 
 ## API 概览
@@ -166,6 +166,87 @@ src/main/resources/
 - Mapper 使用 XML 映射文件，非注解方式
 - 管理员权限常量：`ADMIN_STATUS = 99`
 
+## 代码注释规范
+
+代码必须添加注释，以便阅读和理解。所有注释使用中文。
+
+### 注释形式
+
+#### 1. 类级别注释
+
+```java
+/**
+ * AI 回复服务实现
+ * 调用 DeepSeek API 生成回复，支持 5 种性格风格自动匹配
+ */
+@Service
+@Slf4j
+public class AiServiceImpl implements AiService {
+```
+
+#### 2. 字段注释
+
+```java
+/** DeepSeek API 地址 */
+@Value("${treehole.ai.api-url}")
+private String apiUrl;
+
+/** 评论数（冗余字段，由 comment 表聚合维护） */
+private Integer commentCount;
+```
+
+#### 3. 方法注释
+
+```java
+/**
+ * 生成 AI 回复
+ * 根据帖子内容自动分析情绪，匹配对应性格的提示词，调用 DeepSeek API 生成回复
+ *
+ * @param postId 帖子ID
+ * @return 生成的 AI 回复实体
+ */
+public AiReply generateReply(Long postId) {
+}
+
+/** 查询用户是否已点赞某帖子 */
+public boolean isLiked(Long userId, Long postId) {
+}
+```
+
+#### 4. 枚举值注释
+
+```java
+/** 温暖安慰型 */
+COMFORT("comfort", "温暖安慰", "你是一个温暖的朋友..."),
+
+/** 幽默吐槽型 */
+HUMOR("humor", "幽默吐槽", "你是一个幽默的损友..."),
+```
+
+### 注释要求
+
+| 代码元素                                        | 注释要求                                      |
+| ----------------------------------------------- | --------------------------------------------- |
+| 类（Controller/Service/Entity/Mapper/Config等） | 必须添加类级别注释，说明职责和用途            |
+| public 方法                                     | 必须添加 Javadoc 注释，说明功能、参数、返回值 |
+| 字段（特别是业务含义）                          | 必须添加字段注释                              |
+| 枚举值                                          | 必须添加枚举值注释                            |
+| 复杂业务逻辑                                    | 在关键逻辑处添加行内注释说明                  |
+
+### 示例项目注释参考
+
+已添加完整注释的文件：
+
+- `entity/` - 所有实体类
+- `controller/` - 所有控制器
+- `service/` - 所有服务接口和实现
+- `mapper/` - 所有 Mapper 接口
+- `ai/` - AI 相关类
+- `config/` - 所有配置类
+- `common/Result.java`、`common/ForbiddenWordUtil.java`
+- `exception/` - 异常处理类
+- `interceptor/LoginInterceptor.java`
+
 ## 已完成优化
 
 1. ✅ 自定义 BusinessException 替代 RuntimeException，GlobalExceptionHandler 区分业务/系统异常
@@ -181,6 +262,9 @@ src/main/resources/
 11. ✅ 修复 PostLikeMapper/PostFavoriteMapper toggle SQL 中 createTime 参数缺失问题（MyBatis Parameter not found）
 12. ✅ 修复 AdminController auditUser 接口字段名不匹配问题（userName → username，@RequestBody → @ModelAttribute）
 13. ✅ AI回复助手功能：自动分析帖子情绪匹配5种性格提示词（安慰/吐槽/理性/鼓励/综合），调用DeepSeek API生成回复
+14. ✅ 评论发布/删除后帖子评论数更新（Post表新增comment_count字段及相关Mapper方法）
+15. ✅ AI回复刷新界面后数据丢失问题（toggleComments时同时加载AI回复）
+16. ✅ 全局代码注释完善：Controller、Service、Mapper、Entity、Config、AI模块等所有Java文件均添加完整注释
 
 ## 待优化方向（简历项目增强）
 

@@ -10,10 +10,14 @@ import java.time.LocalDateTime;
  */
 @Data
 public class PostLike {
+    /** 主键ID */
     private Long id;
+    /** 点赞用户ID */
     private Long userId;
+    /** 被点赞的帖子ID */
     private Long postId;
     /** 逻辑删除标识：0-未删除，1-已删除 */
     private Integer isDeleted;
+    /** 创建时间 */
     private LocalDateTime createTime;
 }

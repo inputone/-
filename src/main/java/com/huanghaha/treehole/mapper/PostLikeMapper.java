@@ -10,9 +10,12 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface PostLikeMapper {
 
+    /** 切换点赞状态（toggle 模式） */
     void toggleLike(Long userId, Long postId);
 
+    /** 查询用户是否点赞某帖子 */
     Long findByUserIdAndPostId(Long userId, Long postId);
 
+    /** 统计帖子点赞数 */
     Integer countByPostId(Long postId);
 }
