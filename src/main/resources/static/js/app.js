@@ -3,53 +3,64 @@ const BASE_URL = "";
 const { createApp, reactive, computed, onMounted } = Vue;
 
 const state = reactive({
-  view: "login",
+  initializing: true,
+  loggedIn: false,
+  loginView: "login",
   tab: "posts",
   user: null,
   posts: [],
+  favorites: [],
   total: 0,
+  totalPages: 1,
   page: 1,
   size: 10,
   waitAuditUsers: [],
   loading: false,
+  adminLoading: false,
   toast: { show: false, msg: "", type: "info" },
-  postContent: "",
-  loginUsername: "",
-  loginPassword: "",
-  registerUsername: "",
-  registerPassword: "",
-  showRegister: false,
   likedPosts: {},
   favoritedPosts: {},
-  favoritePosts: [],
-  theme: localStorage.getItem("theme") || "dark",
-  expandedPosts: {},
-  postComments: {},
-  commentInputs: {},
-  commentLoading: {},
+  expandedComments: {},
+  comments: {},
+  newComments: {},
   aiReplies: {},
   aiLoading: {},
   showUserMenu: false,
-  publishModal: {
-    show: false,
-  },
-  modal: {
-    show: false,
-    title: "",
-    text: "",
-    actionText: "确认",
-    callback: null,
-  },
+  publishModal: { show: false, content: "" },
+  modal: { show: false, message: "" },
+  loginForm: { username: "", password: "" },
+  registerForm: { username: "", password: "" },
+  theme: localStorage.getItem("theme") || "light",
   debounceTimers: {},
 });
 
-const totalPages = computed(() => Math.ceil(state.total / state.size) || 1);
+const visiblePages = computed(() => {
+  const pages = [];
+  const total = state.totalPages;
+  const current = state.page;
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (current > 3) pages.push("...");
+    for (
+      let i = Math.max(2, current - 1);
+      i <= Math.min(total - 1, current + 1);
+      i++
+    ) {
+      pages.push(i);
+    }
+    if (current < total - 2) pages.push("...");
+    pages.push(total);
+  }
+  return pages;
+});
 
 function showToast(msg, type = "info") {
   state.toast = { show: true, msg, type };
   setTimeout(() => {
     state.toast.show = false;
-  }, 2500);
+  }, 3000);
 }
 
 function formatTime(time) {
@@ -58,20 +69,15 @@ function formatTime(time) {
   const now = new Date();
   const diff = now - d;
   if (diff < 60000) return "刚刚";
-  if (diff < 3600000) return Math.floor(diff / 60000) + "分钟前";
-  if (diff < 86400000) return Math.floor(diff / 3600000) + "小时前";
+  if (diff < 3600000) return Math.floor(diff / 60000) + " 分钟前";
+  if (diff < 86400000) return Math.floor(diff / 3600000) + " 小时前";
+  if (diff < 604800000) return Math.floor(diff / 86400000) + " 天前";
   return d.toLocaleDateString("zh-CN", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
 }
 
 function debounce(key, fn) {
@@ -108,96 +114,83 @@ async function checkLogin() {
     const data = await api("GET", "/user/me");
     if (data.code === 200 && data.data) {
       state.user = data.data;
-      state.view = "main";
+      state.loggedIn = true;
       loadPosts();
     } else {
-      state.view = "login";
+      state.loggedIn = false;
     }
   } catch {
-    state.view = "login";
+    state.loggedIn = false;
+  } finally {
+    state.initializing = false;
   }
 }
 
-async function login() {
-  if (!state.loginUsername || !state.loginPassword) {
-    showToast("用户名和密码不能为空", "warning");
+async function handleLogin() {
+  if (!state.loginForm.username || !state.loginForm.password) {
+    showToast("请输入用户名和密码", "warning");
     return;
   }
   const data = await api(
     "POST",
     "/user/login",
-    `username=${state.loginUsername}&password=${state.loginPassword}`,
+    `username=${state.loginForm.username}&password=${state.loginForm.password}`,
   );
   if (data.code === 200) {
-    showToast(data.msg, "success");
-    state.loginPassword = "";
-    checkLogin();
+    showToast("登录成功", "success");
+    state.loginForm.password = "";
+    setTimeout(() => {
+      checkLogin();
+    }, 300);
   }
 }
 
-function switchToRegister() {
-  state.showRegister = true;
-  state.registerUsername = "";
-  state.registerPassword = "";
-}
-
-function switchToLogin() {
-  state.showRegister = false;
-}
-
-async function register() {
-  if (!state.registerUsername || !state.registerPassword) {
-    showToast("用户名和密码不能为空", "warning");
+async function handleRegister() {
+  if (!state.registerForm.username || !state.registerForm.password) {
+    showToast("请输入用户名和密码", "warning");
     return;
   }
-  if (state.registerPassword.length < 6) {
+  if (state.registerForm.password.length < 6) {
     showToast("密码至少6位", "warning");
     return;
   }
   const data = await api(
     "POST",
     "/user/register",
-    `username=${state.registerUsername}&password=${state.registerPassword}`,
+    `username=${state.registerForm.username}&password=${state.registerForm.password}`,
   );
   if (data.code === 200) {
-    showToast(data.msg, "success");
-    state.loginUsername = state.registerUsername;
-    state.loginPassword = "";
-    state.registerUsername = "";
-    state.registerPassword = "";
-    state.showRegister = false;
+    showToast("注册成功，请等待管理员审核", "success");
+    state.loginForm.username = state.registerForm.username;
+    state.loginForm.password = "";
+    state.registerForm.username = "";
+    state.registerForm.password = "";
+    setTimeout(() => {
+      state.loginView = "login";
+    }, 1500);
   }
 }
 
-async function logout() {
+async function handleLogout() {
   try {
     await api("GET", "/user/logout");
   } catch {}
-  showToast("已退出", "success");
+  showToast("已退出登录", "success");
   setTimeout(() => {
     state.user = null;
-    state.view = "login";
+    state.loggedIn = false;
     state.posts = [];
+    state.favorites = [];
     state.waitAuditUsers = [];
     state.page = 1;
     state.tab = "posts";
     state.showUserMenu = false;
-  }, 500);
-}
-
-function toggleUserMenu() {
-  state.showUserMenu = !state.showUserMenu;
-}
-
-function togglePublishModal() {
-  state.publishModal.show = !state.publishModal.show;
-  if (state.publishModal.show) {
-    state.postContent = "";
-  }
-}
-
-function closePublishModal() {
-  state.publishModal.show = false;
+    state.likedPosts = {};
+    state.favoritedPosts = {};
+    state.expandedComments = {};
+    state.comments = {};
+    state.aiReplies = {};
+  }, 300);
 }
 
 async function loadPosts() {
@@ -210,10 +203,24 @@ async function loadPosts() {
     if (data.code === 200) {
       state.posts = data.data.list;
       state.total = data.data.total;
+      state.totalPages = Math.ceil(state.total / state.size) || 1;
       loadLikeAndFavoriteStatus();
     }
   } catch {
     showToast("加载帖子失败", "error");
+  }
+  state.loading = false;
+}
+
+async function loadFavorites() {
+  state.loading = true;
+  try {
+    const data = await api("GET", "/post/favorites");
+    if (data.code === 200) {
+      state.favorites = data.data || [];
+    }
+  } catch {
+    showToast("加载收藏失败", "error");
   }
   state.loading = false;
 }
@@ -246,7 +253,11 @@ async function checkFavorited(postId) {
 
 async function toggleLike(postId) {
   if (!debounce(`like_${postId}`)) {
-    showToast("操作太频繁，请稍后再试", "warning");
+    showToast("操作太频繁", "warning");
+    return;
+  }
+  if (!state.user) {
+    showToast("请先登录", "warning");
     return;
   }
   const data = await api("POST", `/post/like/${postId}`);
@@ -257,19 +268,27 @@ async function toggleLike(postId) {
     if (post) {
       post.likeCount = Math.max(0, (post.likeCount || 0) + (wasLiked ? -1 : 1));
     }
-    const favPost = state.favoritePosts.find((p) => p.id === postId);
+    const favPost = state.favorites.find((p) => p.id === postId);
     if (favPost) {
       favPost.likeCount = Math.max(
         0,
         (favPost.likeCount || 0) + (wasLiked ? -1 : 1),
       );
     }
+    showToast(
+      wasLiked ? "取消点赞" : "点赞成功",
+      wasLiked ? "info" : "success",
+    );
   }
 }
 
 async function toggleFavorite(postId) {
   if (!debounce(`favorite_${postId}`)) {
-    showToast("操作太频繁，请稍后再试", "warning");
+    showToast("操作太频繁", "warning");
+    return;
+  }
+  if (!state.user) {
+    showToast("请先登录", "warning");
     return;
   }
   const data = await api("POST", `/post/favorite/${postId}`);
@@ -283,145 +302,49 @@ async function toggleFavorite(postId) {
         (post.favoriteCount || 0) + (wasFavorited ? -1 : 1),
       );
     }
-    const favPost = state.favoritePosts.find((p) => p.id === postId);
-    if (favPost) {
-      favPost.favoriteCount = Math.max(
-        0,
-        (favPost.favoriteCount || 0) + (wasFavorited ? -1 : 1),
-      );
+    if (wasFavorited) {
+      state.favorites = state.favorites.filter((p) => p.id !== postId);
+      showToast("取消收藏", "info");
+    } else {
+      showToast("收藏成功", "success");
     }
-    showToast(wasFavorited ? "已取消收藏" : "已收藏", "success");
   }
 }
 
-async function loadFavorites() {
-  state.loading = true;
-  try {
-    const data = await api("GET", "/post/favorites");
-    if (data.code === 200) {
-      state.favoritePosts = data.data;
-      if (state.user) {
-        for (const post of state.favoritePosts) {
-          checkLiked(post.id);
-          checkFavorited(post.id);
-        }
-      }
-    }
-  } catch {
-    showToast("加载收藏列表失败", "error");
-  }
-  state.loading = false;
-}
-
-async function generateAiReply(postId) {
-  if (!debounce(`ai_${postId}`)) {
-    showToast("操作太频繁，请稍后再试", "warning");
-    return;
-  }
-  state.aiLoading[postId] = true;
-  try {
-    const data = await api("POST", `/ai/reply/${postId}`);
-    if (data.code === 200) {
-      if (!state.aiReplies[postId]) {
-        state.aiReplies[postId] = [];
-      }
-      state.aiReplies[postId].unshift(data.data);
-      showToast("AI回复已生成", "success");
-    }
-  } catch {
-    showToast("AI回复生成失败", "error");
-  }
-  state.aiLoading[postId] = false;
-}
-
-async function loadAiReplies(postId) {
-  if (state.aiReplies[postId]) return;
-  try {
-    const data = await api("GET", `/ai/reply/${postId}`);
-    if (data.code === 200) {
-      state.aiReplies[postId] = data.data;
-    }
-  } catch {}
-}
-
-async function publishPost() {
-  if (!state.postContent) {
-    showToast("帖子内容不能为空", "warning");
-    return;
-  }
-  const data = await api(
-    "POST",
-    "/post/publish",
-    `content=${encodeURIComponent(state.postContent)}`,
-  );
-  if (data.code === 200) {
-    showToast(data.msg, "success");
-    state.postContent = "";
-    closePublishModal();
-    state.page = 1;
-    loadPosts();
-  }
-}
-
-function confirmDeletePost(post) {
-  state.modal = {
-    show: true,
-    title: "删除帖子",
-    text: "确定要删除这条帖子吗？此操作不可恢复。",
-    actionText: "删除",
-    callback: () => deletePost(post.id),
-  };
-}
-
-async function deletePost(postId) {
-  const data = await api("DELETE", `/post/delete?id=${postId}`);
-  if (data.code === 200) {
-    showToast(data.msg, "success");
-    loadPosts();
-  }
-  closeModal();
-}
-
-async function adminDeletePost(postId) {
-  const data = await api("DELETE", `/admin/post/${postId}`);
-  if (data.code === 200) {
-    showToast(data.msg, "success");
-    loadPosts();
-  }
-}
-
-async function toggleComments(post) {
-  const postId = post.id;
-  if (state.expandedPosts[postId]) {
-    state.expandedPosts[postId] = false;
-  } else {
-    state.expandedPosts[postId] = true;
-    if (!state.postComments[postId]) {
-      loadComments(postId);
-    }
-    if (!state.aiReplies[postId]) {
-      loadAiReplies(postId);
-    }
+async function toggleComments(postId) {
+  state.expandedComments[postId] = !state.expandedComments[postId];
+  if (state.expandedComments[postId] && !state.comments[postId]) {
+    await loadComments(postId);
+    await loadAiReplies(postId);
   }
 }
 
 async function loadComments(postId) {
-  state.commentLoading[postId] = true;
   try {
     const data = await api("GET", `/comment/post/${postId}`);
     if (data.code === 200) {
-      state.postComments[postId] = data.data;
+      state.comments[postId] = data.data || [];
     }
-  } catch {
-    showToast("加载评论失败", "error");
-  }
-  state.commentLoading[postId] = false;
+  } catch {}
 }
 
-async function publishComment(postId) {
-  const content = state.commentInputs[postId];
-  if (!content) {
-    showToast("评论内容不能为空", "warning");
+async function loadAiReplies(postId) {
+  try {
+    const data = await api("GET", `/ai/reply/${postId}`);
+    if (data.code === 200) {
+      state.aiReplies[postId] = data.data || [];
+    }
+  } catch {}
+}
+
+async function submitComment(postId) {
+  const content = state.newComments[postId];
+  if (!content || !content.trim()) {
+    showToast("请输入评论内容", "warning");
+    return;
+  }
+  if (!debounce(`comment_${postId}`)) {
+    showToast("操作太频繁", "warning");
     return;
   }
   const data = await api(
@@ -430,65 +353,115 @@ async function publishComment(postId) {
     `postId=${postId}&content=${encodeURIComponent(content)}`,
   );
   if (data.code === 200) {
-    showToast(data.msg, "success");
-    state.commentInputs[postId] = "";
-    loadComments(postId);
+    showToast("评论成功", "success");
+    state.newComments[postId] = "";
+    await loadComments(postId);
+    const post = state.posts.find((p) => p.id === postId);
+    if (post) {
+      post.commentCount = (post.commentCount || 0) + 1;
+    }
   }
 }
 
-function confirmDeleteComment(comment) {
-  state.modal = {
-    show: true,
-    title: "删除评论",
-    text: "确定要删除这条评论吗？此操作不可恢复。",
-    actionText: "删除",
-    callback: () => deleteComment(comment.id),
-  };
-}
-
-async function deleteComment(commentId) {
+async function deleteComment(commentId, postId) {
   const data = await api("DELETE", `/comment/${commentId}`);
   if (data.code === 200) {
-    showToast(data.msg, "success");
-    for (const postId in state.postComments) {
-      loadComments(parseInt(postId));
+    showToast("删除成功", "success");
+    state.comments[postId] = state.comments[postId].filter(
+      (c) => c.id !== commentId,
+    );
+    const post = state.posts.find((p) => p.id === postId);
+    if (post && post.commentCount > 0) {
+      post.commentCount -= 1;
     }
   }
-  closeModal();
 }
 
-async function adminDeleteComment(commentId) {
-  const data = await api("DELETE", `/admin/comment/${commentId}`);
-  if (data.code === 200) {
-    showToast(data.msg, "success");
-    for (const postId in state.postComments) {
-      loadComments(parseInt(postId));
+async function generateAiReply(postId) {
+  if (!state.user) {
+    showToast("请先登录", "warning");
+    return;
+  }
+  if (!debounce(`ai_${postId}`)) {
+    showToast("操作太频繁", "warning");
+    return;
+  }
+  state.aiLoading[postId] = true;
+  try {
+    const data = await api("POST", `/ai/reply/${postId}`);
+    if (data.code === 200) {
+      showToast("AI 回复已生成", "success");
+      await loadAiReplies(postId);
     }
+  } catch {
+    showToast("AI 回复生成失败", "error");
+  }
+  state.aiLoading[postId] = false;
+}
+
+function openPublishModal() {
+  state.publishModal.show = true;
+  state.publishModal.content = "";
+}
+
+function closePublishModal() {
+  state.publishModal.show = false;
+}
+
+function updateCharCount() {}
+
+async function handlePublish() {
+  const content = state.publishModal.content;
+  if (!content || !content.trim()) {
+    showToast("请输入帖子内容", "warning");
+    return;
+  }
+  if (content.length > 500) {
+    showToast("帖子内容不能超过500字", "warning");
+    return;
+  }
+  const data = await api(
+    "POST",
+    "/post/publish",
+    `content=${encodeURIComponent(content)}`,
+  );
+  if (data.code === 200) {
+    showToast("发布成功", "success");
+    closePublishModal();
+    state.page = 1;
+    await loadPosts();
+  }
+}
+
+async function deletePost(postId) {
+  const data = await api("DELETE", `/post/delete?id=${postId}`);
+  if (data.code === 200) {
+    showToast("删除成功", "success");
+    state.posts = state.posts.filter((p) => p.id !== postId);
   }
 }
 
 async function loadWaitAuditUsers() {
-  state.loading = true;
+  state.adminLoading = true;
   try {
     const data = await api("GET", "/admin/waitAuditUserList");
     if (data.code === 200) {
-      state.waitAuditUsers = data.data;
+      state.waitAuditUsers = data.data || [];
     }
   } catch {
     showToast("加载待审核用户失败", "error");
   }
-  state.loading = false;
+  state.adminLoading = false;
 }
 
-async function auditUser(username, status) {
+async function auditUser(userId, status) {
   const data = await api(
     "POST",
-    "/admin/auditUser",
-    `username=${username}&status=${status}`,
+    `/admin/auditUser?userId=${userId}&status=${status}`,
   );
   if (data.code === 200) {
-    showToast(data.msg, "success");
-    loadWaitAuditUsers();
+    showToast(status === 1 ? "已通过审核" : "已封禁用户", "success");
+    state.waitAuditUsers = state.waitAuditUsers.filter((u) => u.id !== userId);
   }
 }
 
@@ -503,119 +476,74 @@ function switchTab(tab) {
   }
 }
 
-function goToPage(p) {
-  if (p < 1 || p > totalPages.value) return;
-  state.page = p;
+function changePage(page) {
+  if (page < 1 || page > state.totalPages) return;
+  state.page = page;
   loadPosts();
-}
-
-function getPageNumbers() {
-  const pages = [];
-  const total = totalPages.value;
-  const current = state.page;
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) pages.push(i);
-  } else {
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) pages.push(i);
-      pages.push("...");
-      pages.push(total);
-    } else if (current >= total - 3) {
-      pages.push(1);
-      pages.push("...");
-      for (let i = total - 4; i <= total; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      pages.push("...");
-      for (let i = current - 1; i <= current + 1; i++) pages.push(i);
-      pages.push("...");
-      pages.push(total);
-    }
-  }
-  return pages;
-}
-
-function canDeletePost(post) {
-  if (!state.user) return false;
-  if (state.user.status === 99) return true;
-  return post.userId === state.user.id;
-}
-
-function canDeleteComment(comment) {
-  if (!state.user) return false;
-  if (state.user.status === 99) return true;
-  return comment.userId === state.user.id;
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function closeModal() {
   state.modal.show = false;
 }
 
-function confirmAction() {
-  if (state.modal.callback) {
-    state.modal.callback();
-  }
-  closeModal();
-}
-
 function toggleTheme() {
-  state.theme = state.theme === "dark" ? "light" : "dark";
-  localStorage.setItem("theme", state.theme);
+  state.theme = state.theme === "light" ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", state.theme);
+  localStorage.setItem("theme", state.theme);
 }
 
-function initTheme() {
-  const saved = localStorage.getItem("theme") || "dark";
-  state.theme = saved;
-  document.documentElement.setAttribute("data-theme", saved);
-}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if (state.publishModal.show) {
+      closePublishModal();
+    }
+    if (state.modal.show) {
+      closeModal();
+    }
+    state.showUserMenu = false;
+  }
+});
 
-const app = createApp({
+document.addEventListener("click", (e) => {
+  if (
+    state.showUserMenu &&
+    !e.target.closest(".user-avatar-mini") &&
+    !e.target.closest(".user-menu")
+  ) {
+    state.showUserMenu = false;
+  }
+});
+
+createApp({
   setup() {
     onMounted(() => {
-      initTheme();
+      const savedTheme = localStorage.getItem("theme") || "light";
+      state.theme = savedTheme;
+      document.documentElement.setAttribute("data-theme", savedTheme);
       checkLogin();
     });
 
-    return {
-      state,
-      totalPages,
-      showToast,
-      formatTime,
-      escapeHtml,
-      login,
-      register,
-      switchToRegister,
-      switchToLogin,
-      logout,
-      toggleUserMenu,
-      togglePublishModal,
-      closePublishModal,
-      publishPost,
-      deletePost,
-      adminDeletePost,
-      toggleComments,
-      publishComment,
-      deleteComment,
-      adminDeleteComment,
-      auditUser,
-      switchTab,
-      goToPage,
-      getPageNumbers,
-      canDeletePost,
-      canDeleteComment,
-      toggleLike,
-      toggleFavorite,
-      loadFavorites,
-      toggleTheme,
-      confirmDeletePost,
-      confirmDeleteComment,
-      closeModal,
-      confirmAction,
-      generateAiReply,
-      loadAiReplies,
-    };
+    return { state, visiblePages, showToast, formatTime, toggleTheme };
   },
-});
-
-app.mount("#app");
+  methods: {
+    handleLogin,
+    handleRegister,
+    handleLogout,
+    handlePublish,
+    openPublishModal,
+    closePublishModal,
+    updateCharCount,
+    switchTab,
+    changePage,
+    closeModal,
+    toggleLike,
+    toggleFavorite,
+    toggleComments,
+    submitComment,
+    deleteComment,
+    deletePost,
+    generateAiReply,
+    auditUser,
+  },
+}).mount("#app");

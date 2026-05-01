@@ -26,7 +26,7 @@ src/main/java/com/huanghaha/treehole/
 │   └── AiPrompt.java            # 提示词枚举（5种性格：安慰/吐槽/理性/鼓励/综合）
 ├── config/
 │   ├── PasswordConfig.java      # BCrypt PasswordEncoder Bean
-│   ├── RedisConfig.java         # RedisTemplate 配置 (JDK序列化)
+│   ├── RedisConfig.java         # RedisTemplate 配置 (Jackson JSON序列化，ObjectMapper 注册 JavaTimeModule)
 │   ├── RedisSessionConfig.java  # Spring Session + Cookie 配置
 │   ├── AiConfig.java           # RestTemplate Bean（AI调用）
 │   └── WebConfig.java           # 拦截器注册 + 路径规则
@@ -265,6 +265,7 @@ HUMOR("humor", "幽默吐槽", "你是一个幽默的损友..."),
 14. ✅ 评论发布/删除后帖子评论数更新（Post表新增comment_count字段及相关Mapper方法）
 15. ✅ AI回复刷新界面后数据丢失问题（toggleComments时同时加载AI回复）
 16. ✅ 全局代码注释完善：Controller、Service、Mapper、Entity、Config、AI模块等所有Java文件均添加完整注释
+17. ✅ Redis 序列化方式升级：JDK序列化 → Jackson JSON序列化，ObjectMapper 注册 JavaTimeModule 处理 LocalDateTime，Redis 数据可读性提升
 
 ## 待优化方向（简历项目增强）
 
@@ -284,7 +285,7 @@ HUMOR("humor", "幽默吐槽", "你是一个幽默的损友..."),
 
 ### 技术亮点可增强
 
-9. **Redis 缓存仅用于帖子分页**：可扩展到评论、用户信息等
+9. ✅ ~~**Redis 缓存仅用于帖子分页**：可扩展到评论、用户信息等~~（已使用 Jackson JSON 序列化，可读性好）
 10. **缺少 Swagger/OpenAPI 文档**：简历项目应有在线接口文档
 11. **缺少 Docker 部署支持**
 12. **缺少单元测试覆盖**：目前仅有 PostServiceTest 和 UserServiceTest

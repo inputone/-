@@ -8,7 +8,7 @@ import com.huanghaha.treehole.service.PostService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -42,13 +42,13 @@ public class PostServiceImpl implements PostService {
     /** 缓存 Key 前缀，格式：post:page:{page}:{size} */
     private static final String CACHE_KEY_PREFIX = "post:page:";
 
-    @Resource
+    @Autowired
     private PostMapper postMapper;
 
-    @Resource
+    @Autowired
     private ForbiddenWordUtil forbiddenWordUtil;
 
-    @Resource
+    @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
     @Override
@@ -126,7 +126,7 @@ public class PostServiceImpl implements PostService {
         try {
             redisTemplate.opsForValue().set(cacheKey, result, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
         } catch (Exception e) {
-            log.warn("Redis连接失败，跳过缓存写入：{}", e.getMessage());
+            log.warn("Redis操作失败", e);
         }
         log.info("分页查询帖子：page={}, size={}, total={}", page, size, total);
         return result;

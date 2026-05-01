@@ -36,6 +36,8 @@ public class UserController {
             HttpSession session) {
         User user = userService.login(username, password);
         session.setAttribute("loginUser", user);
+        log.info("用户登录成功：username={}, sessionId={}, 是否分布式Session={}",
+                username, session.getId(), "Redis存储");
         return Result.success("登录成功");
     }
 

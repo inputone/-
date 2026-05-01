@@ -5,7 +5,7 @@ import com.huanghaha.treehole.entity.User;
 import com.huanghaha.treehole.exception.BusinessException;
 import com.huanghaha.treehole.mapper.UserMapper;
 import com.huanghaha.treehole.service.UserService;
-import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,13 +21,13 @@ import java.time.LocalDateTime;
 @Slf4j
 public class UserServiceImpl implements UserService {
 
-    @Resource
+    @Autowired
     private UserMapper userMapper;
 
-    @Resource
+    @Autowired
     private ForbiddenWordUtil forbiddenWordUtil;
 
-    @Resource
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Override
