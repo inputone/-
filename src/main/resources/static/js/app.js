@@ -60,7 +60,7 @@ function showToast(msg, type = "info") {
   state.toast = { show: true, msg, type };
   setTimeout(() => {
     state.toast.show = false;
-  }, 3000);
+  }, 2000);
 }
 
 function formatTime(time) {

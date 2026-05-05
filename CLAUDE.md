@@ -266,6 +266,8 @@ HUMOR("humor", "幽默吐槽", "你是一个幽默的损友..."),
 15. ✅ AI回复刷新界面后数据丢失问题（toggleComments时同时加载AI回复）
 16. ✅ 全局代码注释完善：Controller、Service、Mapper、Entity、Config、AI模块等所有Java文件均添加完整注释
 17. ✅ Redis 序列化方式升级：JDK序列化 → Jackson JSON序列化，ObjectMapper 注册 JavaTimeModule 处理 LocalDateTime，Redis 数据可读性提升
+18. ✅ Spring Session + Redis 序列化一致性：RedisConfig 和 RedisSessionConfig 统一使用 Jackson2JsonRedisSerializer，避免序列化不一致导致 Session 数据重启后读取失败
+19. ✅ User 实体 implements Serializable（Session 存储到 Redis 的必要条件，解决重启后浏览器刷新丢失登录状态的核心问题）
 
 ## 待优化方向（简历项目增强）
 

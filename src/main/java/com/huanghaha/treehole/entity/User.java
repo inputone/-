@@ -1,6 +1,7 @@
 package com.huanghaha.treehole.entity;
 
 import lombok.Data;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -8,7 +9,8 @@ import java.time.LocalDateTime;
  * 对应数据库 user 表，采用逻辑删除（is_deleted）
  */
 @Data
-public class User {
+public class User implements Serializable {
+    private static final long serialVersionUID = 1L;
     /** 主键ID */
     private Long id;
     /** 用户名（唯一） */

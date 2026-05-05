@@ -1,8 +1,12 @@
 package com.huanghaha.treehole.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
@@ -15,10 +19,16 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 @Configuration
 public class RedisSessionConfig {
 
-    /** Spring Session 使用 JDK 序列化，与 RedisTemplate 保持一致 */
+    /** Spring Session 使用 Jackson JSON 序列化，与 RedisTemplate 保持一致 */
     @Bean
     public RedisSerializer<Object> springSessionDefaultRedisSerializer() {
-        return new JdkSerializationRedisSerializer();
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.activateDefaultTyping(
+                LaissezFaireSubTypeValidator.instance,
+                ObjectMapper.DefaultTyping.NON_FINAL,
+                JsonTypeInfo.As.PROPERTY);
+        return new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
     }
 
     /** 自定义 Cookie 配置：名称、路径、安全属性 */

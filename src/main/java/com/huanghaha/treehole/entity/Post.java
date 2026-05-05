@@ -1,7 +1,7 @@
 package com.huanghaha.treehole.entity;
 
 import lombok.Data;
-import java.io.Serializable;
+
 import java.time.LocalDateTime;
 
 /**
@@ -9,8 +9,8 @@ import java.time.LocalDateTime;
  * 对应数据库 post 表，冗余计数字段（like_count/favorite_count/comment_count）通过 SQL 原子更新保证一致性
  */
 @Data
-public class Post implements Serializable { // ← 加上 implements Serializable
-    private static final long serialVersionUID = 1L;
+public class Post {
+
     /** 主键ID */
     private Long id;
     /** 发布者用户ID */
