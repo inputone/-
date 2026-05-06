@@ -1,4 +1,4 @@
-package com.huanghaha.treehole.exception;
+package com.huanghaha.treehole.common;
 
 /**
  * 业务异常

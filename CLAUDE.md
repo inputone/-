@@ -20,15 +20,16 @@ TreeHole（树洞）是一个匿名社区后端系统，用户可以匿名发布
 src/main/java/com/huanghaha/treehole/
 ├── common/
 │   ├── Result.java              # 统一返回结果 (code/msg/data)
+│   └── BusinessException.java   # 自定义业务异常（code + message）
+├── util/
 │   └── ForbiddenWordUtil.java   # 敏感词过滤工具（抛 BusinessException）
-├── ai/
-│   ├── AiReply.java             # AI回复实体
+├── enums/
 │   └── AiPrompt.java            # 提示词枚举（5种性格：安慰/吐槽/理性/鼓励/综合）
 ├── config/
 │   ├── PasswordConfig.java      # BCrypt PasswordEncoder Bean
 │   ├── RedisConfig.java         # RedisTemplate 配置 (Jackson JSON序列化，ObjectMapper 注册 JavaTimeModule)
 │   ├── RedisSessionConfig.java  # Spring Session + Cookie 配置
-│   ├── AiConfig.java           # RestTemplate Bean（AI调用）
+│   ├── AiConfig.java            # RestTemplate Bean（AI调用）
 │   └── WebConfig.java           # 拦截器注册 + 路径规则
 ├── controller/
 │   ├── UserController.java      # 注册/登录/用户信息/退出
@@ -38,13 +39,12 @@ src/main/java/com/huanghaha/treehole/
 │   └── AiController.java       # AI回复生成/查询
 ├── entity/
 │   ├── User.java                # id/username/password/status/isDeleted/createTime
-│   ├── Post.java                # id/userId/username/content/likeCount/favoriteCount/isDeleted/createTime
+│   ├── Post.java                # id/userId/username/content/likeCount/favoriteCount/commentCount/isDeleted/createTime
 │   ├── PostLike.java            # id/userId/postId/isDeleted/createTime
 │   ├── PostFavorite.java        # id/userId/postId/isDeleted/createTime
 │   ├── Comment.java             # id/userId/username/content/postId/isDeleted/createTime
-│   └── AiReply.java            # id/postId/content/promptType/isDeleted/createTime
-├── exception/
-│   ├── BusinessException.java   # 自定义业务异常（code + message）
+│   └── AiReply.java             # id/postId/content/promptType/isDeleted/createTime
+├── handler/
 │   └── GlobalExceptionHandler.java  # 全局异常处理（区分业务/系统异常）
 ├── interceptor/
 │   └── LoginInterceptor.java    # 登录拦截器
@@ -56,13 +56,13 @@ src/main/java/com/huanghaha/treehole/
 │   ├── CommentMapper.java
 │   └── AiReplyMapper.java
 └── service/
-│   ├── UserService.java / UserServiceImpl.java
-│   ├── PostService.java / PostServiceImpl.java
-│   ├── LikeService.java / LikeServiceImpl.java
-│   ├── FavoriteService.java / FavoriteServiceImpl.java
-│   ├── CommentService.java / CommentServiceImpl.java
-│   ├── AdminService.java / AdminServiceImpl.java
-│   └── AiService.java / AiServiceImpl.java
+    ├── UserService.java / UserServiceImpl.java
+    ├── PostService.java / PostServiceImpl.java
+    ├── LikeService.java / LikeServiceImpl.java
+    ├── FavoriteService.java / FavoriteServiceImpl.java
+    ├── CommentService.java / CommentServiceImpl.java
+    ├── AdminService.java / AdminServiceImpl.java
+    └── AiService.java / AiServiceImpl.java
 └── TreeholeApplication.java     # 启动类
 
 src/main/resources/
@@ -241,10 +241,11 @@ HUMOR("humor", "幽默吐槽", "你是一个幽默的损友..."),
 - `controller/` - 所有控制器
 - `service/` - 所有服务接口和实现
 - `mapper/` - 所有 Mapper 接口
-- `ai/` - AI 相关类
+- `enums/` - 枚举类
 - `config/` - 所有配置类
-- `common/Result.java`、`common/ForbiddenWordUtil.java`
-- `exception/` - 异常处理类
+- `common/Result.java`、`common/BusinessException.java`
+- `util/ForbiddenWordUtil.java`
+- `handler/GlobalExceptionHandler.java`
 - `interceptor/LoginInterceptor.java`
 
 ## 已完成优化
@@ -268,6 +269,7 @@ HUMOR("humor", "幽默吐槽", "你是一个幽默的损友..."),
 17. ✅ Redis 序列化方式升级：JDK序列化 → Jackson JSON序列化，ObjectMapper 注册 JavaTimeModule 处理 LocalDateTime，Redis 数据可读性提升
 18. ✅ Spring Session + Redis 序列化一致性：RedisConfig 和 RedisSessionConfig 统一使用 Jackson2JsonRedisSerializer，避免序列化不一致导致 Session 数据重启后读取失败
 19. ✅ User 实体 implements Serializable（Session 存储到 Redis 的必要条件，解决重启后浏览器刷新丢失登录状态的核心问题）
+20. ✅ 项目包结构重构：严格区分 common（通用基础设施）/ util（工具类）/ enums（枚举）/ handler（全局处理器），AiReply 实体归入 entity 包，AiPrompt 枚举归入 enums 包，消除 ai 和 exception 碎片化包
 
 ## 待优化方向（简历项目增强）
 

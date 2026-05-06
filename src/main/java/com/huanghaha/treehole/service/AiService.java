@@ -1,6 +1,6 @@
 package com.huanghaha.treehole.service;
 
-import com.huanghaha.treehole.ai.AiReply;
+import com.huanghaha.treehole.entity.AiReply;
 import java.util.List;
 
 /**

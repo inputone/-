@@ -1,8 +1,8 @@
 package com.huanghaha.treehole.service.impl;
 
-import com.huanghaha.treehole.common.ForbiddenWordUtil;
+import com.huanghaha.treehole.util.ForbiddenWordUtil;
 import com.huanghaha.treehole.entity.User;
-import com.huanghaha.treehole.exception.BusinessException;
+import com.huanghaha.treehole.common.BusinessException;
 import com.huanghaha.treehole.mapper.UserMapper;
 import com.huanghaha.treehole.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;

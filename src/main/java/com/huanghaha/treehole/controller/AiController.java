@@ -1,7 +1,7 @@
 package com.huanghaha.treehole.controller;
 
-import com.huanghaha.treehole.ai.AiPrompt;
-import com.huanghaha.treehole.ai.AiReply;
+import com.huanghaha.treehole.enums.AiPrompt;
+import com.huanghaha.treehole.entity.AiReply;
 import com.huanghaha.treehole.common.Result;
 import com.huanghaha.treehole.service.AiService;
 import jakarta.servlet.http.HttpSession;

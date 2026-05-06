@@ -1,6 +1,6 @@
 package com.huanghaha.treehole.mapper;
 
-import com.huanghaha.treehole.ai.AiReply;
+import com.huanghaha.treehole.entity.AiReply;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.huanghaha.treehole.ai;
+package com.huanghaha.treehole.entity;
 
 import lombok.Data;
 import java.time.LocalDateTime;

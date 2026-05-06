@@ -1,6 +1,6 @@
-package com.huanghaha.treehole.common;
+package com.huanghaha.treehole.util;
 
-import com.huanghaha.treehole.exception.BusinessException;
+import com.huanghaha.treehole.common.BusinessException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

@@ -1,4 +1,4 @@
-package com.huanghaha.treehole.ai;
+package com.huanghaha.treehole.enums;
 
 import lombok.Getter;
 

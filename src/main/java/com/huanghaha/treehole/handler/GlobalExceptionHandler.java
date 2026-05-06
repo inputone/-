@@ -1,5 +1,6 @@
-package com.huanghaha.treehole.exception;
+package com.huanghaha.treehole.handler;
 
+import com.huanghaha.treehole.common.BusinessException;
 import com.huanghaha.treehole.common.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;

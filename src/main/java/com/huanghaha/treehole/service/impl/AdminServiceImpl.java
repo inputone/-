@@ -3,7 +3,7 @@ package com.huanghaha.treehole.service.impl;
 import com.huanghaha.treehole.entity.Comment;
 import com.huanghaha.treehole.entity.Post;
 import com.huanghaha.treehole.entity.User;
-import com.huanghaha.treehole.exception.BusinessException;
+import com.huanghaha.treehole.common.BusinessException;
 import com.huanghaha.treehole.mapper.CommentMapper;
 import com.huanghaha.treehole.mapper.PostMapper;
 import com.huanghaha.treehole.mapper.UserMapper;

@@ -6,14 +6,14 @@
         VALUES (#{postId}, #{content}, #{promptType}, 0, NOW())
     </insert>
 
-    <select id="selectByPostId" resultType="com.huanghaha.treehole.ai.AiReply">
+    <select id="selectByPostId" resultType="com.huanghaha.treehole.entity.AiReply">
         SELECT id, post_id, content, prompt_type, is_deleted, create_time
         FROM ai_reply
         WHERE post_id = #{postId} AND is_deleted = 0
         ORDER BY create_time DESC
     </select>
 
-    <select id="selectById" resultType="com.huanghaha.treehole.ai.AiReply">
+    <select id="selectById" resultType="com.huanghaha.treehole.entity.AiReply">
         SELECT id, post_id, content, prompt_type, is_deleted, create_time
         FROM ai_reply
         WHERE id = #{id} AND is_deleted = 0

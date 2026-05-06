@@ -1,7 +1,7 @@
 package com.huanghaha.treehole.service.impl;
 
 import com.huanghaha.treehole.entity.Post;
-import com.huanghaha.treehole.exception.BusinessException;
+import com.huanghaha.treehole.common.BusinessException;
 import com.huanghaha.treehole.mapper.PostFavoriteMapper;
 import com.huanghaha.treehole.mapper.PostMapper;
 import com.huanghaha.treehole.service.FavoriteService;
